@@ -1,10 +1,10 @@
 Host github.com gitlab.com
 	User git
-
+Host trucks.cs.unm.edu
+        StrictHostKeyChecking no
+Host moons.cs.unm.edu
+        StrictHostKeyChecking no
 Host *
 	StrictHostKeyChecking ask
 	VerifyHostKeyDNS ask
 	NoHostAuthenticationForLocalhost yes
- 	IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
-	ControlMaster auto
-	ControlPath /tmp/ssh-%r@%h:%p.socket

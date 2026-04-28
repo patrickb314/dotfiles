@@ -311,15 +311,3 @@ github-packages-curl() {
 clearer() {
   tput reset
 }
-
-# Transcribe files
-whisper_transcribe() {
-  whisper-cli \
-    --model ~/OSS/mikemcquaid.com/tmp/models/ggml-large-v3-turbo.bin \
-    --language en "$@"
-}
-
-# New "Thought"
-new-thought() {
-  ~/OSS/mikemcquaid.com/bin/enrich-metadata new
-}

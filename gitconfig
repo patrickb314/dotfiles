@@ -1,14 +1,14 @@
 [user]
 	# Name used in commit messages.
-	name = Mike McQuaid
+	name = Patrick G. Bridges
 	# Email used in commit messages.
-	email = mike@mikemcquaid.com
+	email = patrickb314@gmail.com
 [include]
     # OS-specific (e.g. macOS) Git configuration
 	path = ~/.gitconfig.local
 [github]
 	# GitHub username for command-line tools.
-	user = MikeMcQuaid
+	user = patrickb314
 [color]
 	# Colour terminal command output when possible.
 	ui = auto
@@ -138,14 +138,6 @@
 	# Open a sandvault shell in the current repository or worktree.
 	sv = !sv shell "$(pwd)"
 
-	# Push the current branch upstream to MikeMcQuaid using the same
-	# branch name for the remote branch.
-	um = !(git remote -v | grep -q MikeMcQuaid || gh repo fork --remote --remote-name MikeMcQuaid) \
-	    && gh repo set-default $(git remote get-url origin) \
-	    && git push --set-upstream MikeMcQuaid $(git current-branch)
-	# Push the current branch to MikeMcQuaid and open a pull request.
-	umpr = !git um && gh pr create --web --head MikeMcQuaid:$(git current-branch)
-
 	## Codebase Audit Commands
 	# Show the 20 most-changed files in the last year.
 	churn = !git log --format=format: --name-only --since='1 year ago' \
@@ -231,10 +223,10 @@
 	# Use my custom dotfiles credentials helper.
 	helper = dotfiles
 [credential "https://github.com"]
-	username = MikeMcQuaid
+	username = patrickb314
 [hub]
 	# Use HTTPS rather than SSH protocol in Hub
-	protocol = https
+	protocol = ssh
 # Settings for Git LFS
 [filter "lfs"]
 	clean = git-lfs clean -- %f
@@ -275,6 +267,6 @@
 	skippedCherryPicks = false
 [safe]
 	# It's expected that sandvault directories are owned by another user.
-	directory = /Users/Shared/sv-mike/repositories/*
-	directory = /Users/Shared/sv-mike/worktrees/brew/*
-	directory = /Users/Shared/sv-mike/worktrees/platform/*
+	directory = /Users/Shared/sv-bridges/repositories/*
+	directory = /Users/Shared/sv-bridges/worktrees/brew/*
+	directory = /Users/Shared/sv-bridges/worktrees/platform/*

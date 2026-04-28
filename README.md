@@ -4,7 +4,7 @@ My dot files shared between machines for ZSH, Bash, macOS, Linux, Cygwin and MSY
 
 ## Installation
 
-Run [`script/setup`](https://github.com/MikeMcQuaid/dotfiles/blob/main/script/setup)
+Run [`script/setup`](https://github.com/patrickb314/dotfiles/blob/main/script/setup)
 after checkout to symlink (or copy) everything in this directory to your home directory.
 
 ## Status
@@ -13,7 +13,7 @@ I'm using these on all my personal machines and GitHub Codespaces.
 
 ## Contact
 
-[Mike McQuaid](mailto:mike@mikemcquaid.com)
+Originally by [Mike McQuaid](mailto:mike@mikemcquaid.com)
 
 ## License
 

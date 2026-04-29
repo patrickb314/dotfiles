@@ -8,3 +8,4 @@ Host *
 	StrictHostKeyChecking ask
 	VerifyHostKeyDNS ask
 	NoHostAuthenticationForLocalhost yes
+	WarnWeakCrypto no

@@ -128,6 +128,7 @@ fi
 if quiet_which eza; then
   alias ls="eza --classify --group --git"
 elif [[ -n "${MACOS}" ]]; then
+  export LSCOLORS=GxFxCxDxBxegedabagaced
   alias ls="ls -F"
 else
   alias ls="ls -F --color=auto"

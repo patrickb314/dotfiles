@@ -1,3 +1,5 @@
+tap "homebrew/cask"
+tap "homebrew/core"
 # Basic compilation tools
 brew "cmake"
 # And its documentation

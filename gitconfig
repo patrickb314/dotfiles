@@ -180,10 +180,6 @@
 	## Shortened Existing Commands
 	p = pull
 	s = status --short --branch
-[instaweb]
-	# Use the Ruby WEBRick library when creating a `git instaweb`
-	# HTTP server.
-	httpd = webrick
 [diff]
 	# Use the better histogram diff algorithm
 	algorithm = histogram
@@ -218,14 +214,10 @@
 [url "git@github.com:"]
 	# Use SSH for GitHub instead of https://
 	# Enable this in networks where https:// has issues.
-	# insteadOf = https://github.com/
-[credential]
-	# Use my custom dotfiles credentials helper.
-	helper = dotfiles
+	insteadOf = https://github.com/
 [credential "https://github.com"]
 	username = patrickb314
 [hub]
-	# Use HTTPS rather than SSH protocol in Hub
 	protocol = ssh
 # Settings for Git LFS
 [filter "lfs"]

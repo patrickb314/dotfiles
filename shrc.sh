@@ -86,10 +86,6 @@ alias be="bundle exec"
 alias sha256="shasum -a 256"
 alias sedperl="perl -p -e"
 
-# Sit/stand desk
-alias desk_stand="upsy-desky up"
-alias desk_sit="upsy-desky down"
-
 # Command-specific stuff
 if quiet_which brew; then
   export HOMEBREW_BUNDLE_CHECK=1
@@ -148,6 +144,13 @@ fi
 
 if quiet_which htop; then
   alias top="sudo htop"
+fi
+
+if quiet_which claude; then
+  export CLAUDE_CODE_USE_FOUNDRY=1 
+  export CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1 
+  export ANTHROPIC_FOUNDRY_BASE_URL="https://apim-n1ai-usw2-89fbd882c.azure-api.net/anthropic" 
+  export ANTHROPIC_FOUNDRY_API_KEY="a129e25b2f584d1bbbed4d0e1d1623aa"
 fi
 
 # Configure environment

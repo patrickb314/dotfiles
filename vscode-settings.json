@@ -123,5 +123,9 @@
     "github.copilot.nextEditSuggestions.enabled": true,
     "docker.extension.enableComposeLanguageServer": false,
     "redhat.telemetry.enabled": false,
-    "git.autofetch": true
+    "git.autofetch": true,
+    "claudeCode.preferredLocation": "panel",
+    "claudeCode.claudeProcessWrapper": "/Users/bridges/.dotfiles/bin/sv-claude",
+    "claudeCode.allowDangerouslySkipPermissions": true,
+    "claudeCode.disableLoginPrompt": true
 }

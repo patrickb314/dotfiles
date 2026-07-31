@@ -4,6 +4,12 @@ Host trucks.cs.unm.edu
         StrictHostKeyChecking no
 Host moons.cs.unm.edu
         StrictHostKeyChecking no
+Host git.newmexicoconsortium.org
+        Port 2222
+        User git
+        IdentityFile ~/.ssh/id_dsa
+        ForwardX11 no
+        StrictHostKeyChecking no
 Host *
 	StrictHostKeyChecking ask
 	VerifyHostKeyDNS ask

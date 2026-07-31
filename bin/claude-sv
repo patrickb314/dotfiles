@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# claude-sv.sh — Launch Claude Code inside a SandVault (sv) sandbox.
+#
+# SandVault (https://github.com/webcoyote/sandvault) runs AI agents in an
+# isolated macOS user account. This wraps `sv claude` so it can be dropped
+# in your PATH and used like a normal command.
+#
+# Usage:
+#   claude-sv.sh [PATH] [-- CLAUDE_ARGS...]
+#
+# Examples:
+#   claude-sv.sh                          # launch in the default sandbox home
+#   claude-sv.sh ~/projects/my-app         # launch with that dir as cwd
+#   claude-sv.sh -- --continue             # pass args through to claude
+#   claude-sv.sh ~/projects/my-app -- --continue
+#
+# Env:
+#   SANDVAULT_ARGS  extra flags prepended to `sv` (e.g. "--native-install")
+ 
+set -euo pipefail
+ 
+if ! command -v sv >/dev/null 2>&1; then
+  echo "Error: 'sv' (sandvault) not found on PATH." >&2
+  echo "Install: brew install sandvault" >&2
+  echo "Docs:    https://github.com/webcoyote/sandvault" >&2
+  exit 1
+fi
+ 
+exec sv claude "$@"

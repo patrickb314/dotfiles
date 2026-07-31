@@ -25,5 +25,12 @@
     "defaultMode": "acceptEdits"
   },
   "autoUpdatesChannel": "stable",
-  "theme": "auto"
+  "theme": "auto",
+  "model": "claude-sonnet-5",
+  "sandbox": {
+    "enabled": true,
+    "filesystem": {
+      "allowWrite": ["~/.kube", "/tmp/build"]
+    }
+  }
 }

@@ -11,7 +11,7 @@
 - Avoid em-dashes (prefer semicolons, colons and commas) 
 - Always use the Oxford comma
 - Use US spelling and punctuation
-- Use python virtual environments for any needed software packages
+- Use python virtual environments for any needed python packages
 
 ## Git Commits
 

@@ -27,7 +27,7 @@
   "model": "claude-opus-4-8",
   "autoUpdatesChannel": "stable",
   "theme": "auto",
-  "model": "claude-sonnet-5"
+  "model": "claude-sonnet-5",
   "theme": "auto",
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {

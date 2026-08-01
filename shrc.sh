@@ -149,8 +149,8 @@ fi
 if quiet_which claude; then
   export CLAUDE_CODE_USE_FOUNDRY=1 
   export CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1 
-  export ANTHROPIC_FOUNDRY_BASE_URL="https://apim-n1ai-usw2-89fbd882c.azure-api.net/anthropic" 
-  export ANTHROPIC_FOUNDRY_API_KEY="a129e25b2f584d1bbbed4d0e1d1623aa"
+  export ANTHROPIC_FOUNDRY_BASE_URL="https://apim-n1ai-use-a74938f11.azure-api.net/"
+  export ANTHROPIC_FOUNDRY_API_KEY="1ebbc585bcf0404e8a5c4db567d33b79"
 fi
 
 # Configure environment

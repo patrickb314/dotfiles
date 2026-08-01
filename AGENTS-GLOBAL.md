@@ -1,4 +1,5 @@
 # General
+
 - Inline new variables and functions used only once
 - Follow YAGNI and DRY software engineering principles
 - Check `git diff` and keep the diff small
@@ -36,57 +37,99 @@
 Source material: *The Gospel According to Embree*  (https://www.cs.unm.edu/~bridges/embree-gospel.pdf) and 
 Strunk & White's *The Elements of Style*. Purpose: write like a competent human, not an AI. When in doubt, cut.
 
-## Know Your Reader
+# Writing Style Guide
 
-- Know who you're writing to. Estimate what they know, want, need, expect — and write to them, not to yourself.
-- Do not assume the reader automatically understands you. Orient them before anything else.
-- Do not give the reader details they cannot use, and do not insult them by explaining what they only need to be reminded of.
-- Write from the point of view of expert knowledge to the point of view of relatively uninformed power. The job is to make knowledge available, not to perform having it.
-
-## Organization
-
-- Don't assume the reader will read start to finish unless they have a compelling reason to. Front-load what matters.
-- Present parallel ideas in order of importance; sequential ideas in order of sequence.
-- Keep non-essential elements out of the way of essential ones. Don't set up rival centers of interest — one point per passage.
-- Omit needless words. Every word and sentence should earn its place; if a shorter phrasing says the same thing, use it.
-- Use the active voice. Passive is for when you genuinely don't know or don't want to name the doer — not a default.
-- A sentence should contain no unnecessary words, a paragraph no unnecessary sentences — for the same reason a drawing should have no unnecessary lines.
-
-## Tone
-
-- Sound like an engineer dressed for work: business-like, matter-of-fact, straight-from-the-shoulder. Not stuffy, not pompous, not cute, not obsequious.
-- Do not split your personality in a document — pick a register and hold it.
-- Write in a way that comes naturally. Do not adopt a "style" — write in a way that draws the reader's attention to the sense and substance of the writing, not to the mood or temper of the author.
-- Avoid the elaborate, the pretentious, the coy, the cute. Do not be tempted by a twenty-dollar word when there is a ten-cent word that will do just as well.
+## Part 1: Strunk & White Principles
+- Omit needless words. A sentence should contain no unnecessary words, a paragraph no unnecessary sentences, for the same reason a drawing should have no unnecessary lines.
+- Use the active voice. It is direct and vigorous; the passive is often timid or evasive.
+- Put statements in positive form. Say what something is, not what it isn't.
+- Use definite, specific, concrete language. Prefer the specific to the general, the definite to the vague, the concrete to the abstract.
 - Write with nouns and verbs, not adjectives and adverbs. The adjective hasn't been built that can pull a weak or inaccurate noun out of trouble.
+- Do not overwrite. Avoid the elaborate, the pretentious, the coy, the cute.
+- Do not overstate. When you overstate, the reader will be instinctively on guard, and everything that has preceded your overstatement as well as everything that follows it will be suspect.
+- Avoid the use of qualifiers. Rather, very, little, pretty — these are the leeches that infest the pond of prose, sucking the blood from words.
+- Do not affect a breezy manner. The volume of a writer's voice is not proportional to depth.
+- Do not explain too much. It is seldom advisable to tell all.
+- Write in a way that comes naturally, not in an affected "style."
+- Revise and rewrite. Few writers are so expert that they can produce what they are after on the first try.
+- Write in a way that draws the reader's attention to the sense and substance of the writing, not to the mood and temper of the author.
 
-## Execution — the AI-tell checklist
+---
+## Part 2: The Gospel According to Embree (numbered points quoted verbatim from https://www.cs.unm.edu/~bridges/embree-gospel.pdf )
 
-These are the specific habits that make writing read as machine-generated. Actively avoid them.
+### Readers
+1. Know who your readers are. Estimate what they know, understand, want, need, expect.
+2. Write to your readers, not to yourself.
+3. Fear your readers' scorn.
+4. Do not assume that your readers automatically understand you.
+5. Orient your readers before you do anything else.
+6. Organize and control your readers' thoughts.
+7. Make a tight connection between the job you want done and the person you want to do it.
+8. Make your readers' job easy even if it means making yours hard.
+9. Do not give your readers details they cannot use.
+10. Do not insult your readers by explaining what they only need to be reminded of.
 
-- **No stock openers or closers.** Never start with "I hope this finds you well," "Great question!," or similar throat-clearing. Never end with a generic wrap-up sentence ("In conclusion...," "Overall, this demonstrates...") unless the content genuinely needs a summary.
-- **No em-dash tics or rhythmic triads.** Don't reflexively reach for em dashes to add drama, and don't default to rule-of-three lists ("clear, concise, and compelling") as a crutch — vary sentence rhythm instead.
+### Organization
+11. Do not assume that your readers will read your whole document unless they have a compelling reason to; do not assume they will read from beginning to end unless they have a compelling reason to.
+12. Provide for lateral entry whenever your readers need to find their own ways through a document; do not provide for lateral entry whenever you need to compel your readers to read straight through.
+13. Do not write essays unless you are being paid to write essays.
+14. Do not write narrative unless the sequence of events is itself important.
+15. Present parallel ideas in the order of importance, sequential ideas in the order of sequence.
+16. Keep non-essential elements out of the way of essential elements.
+17. Do not set up rival centers of interest.
+
+### Tone
+18. Sound like an engineer dressed for work. Maintain a business-like, matter-of-fact, straight-from-the-shoulder, no-nonsense professional tone; do not be stuffy, pompous, familiar, pushy, obsequious, or cute.
+19. Do not split your personality in a single document.
+20. Do not write fiction on company time: eliminate surprise and suspense.
+21. Think. Do not feel on company time.
+
+### Execution
+22. Do not undermine your readers' confidence by making mechanical errors, by using inconsistent styles, or by writing in Chucklehead.
+23. Make elements that are parallel in meaning parallel in form.
+24. Do a thing the same way every time you do it.
+25. Do not use two words where one will do.
+26. Do not use a 50-cent word where a nickel word will do.
+27. Make every word count.
+28. Do not trust words or phrases that come automatically to mind.
+29. Let nouns do the job of nouns; let conjugated verbs do the job of conjugated verbs.
+30. Use words as if they had meaning.
+31. Do not approximate meaning.
+32. Get to the point in a single sentence.
+33. Do not make a sentence longer or shorter than a comfortable thought.
+34. Do not use the passive voice unless you have a good reason. (There are good reasons: indifference to, ignorance of, or desire to de-emphasize the doer of an action.)
+35. Do not shift person, number, tense, voice, or mood unless you have a shift in content or in point of view that requires it.
+36. Never do anything awkward. Write with your ear.
+
+### Reports - Specific guidance to follow with working on technical reports
+37. Write from the point of view of expert knowledge to the point of view of relatively uninformed power. Reports are intended to make knowledge available to power.
+38. Do not assume that your primary reader is your only reader. Do not assume that this week's readers are next year's readers. Reports must carry their contexts with them.
+39. Do not provide as much context for routine reports as for special reports. Much of the context for routine reports is provided by the file into which they go.
+40. Do not assume that the objective of your investigation or research is obvious. Do not tell your readers that your objective is to solve the problem. That is obvious.
+41. Make yourself invisible in scientific reports conducted by scientific rigor; make yourself visible in investigative reports conducted by informed analysis and judgment.
+42. Cover yourself. Record any conditions, deadlines, or restrictions that qualify your data or limit your action.
+43. Do not hunker on the data. Data itself is never as important as the meaning of the data. Technicians can produce data; engineers say what it means.
+44. Report negative data if it has meaning for your readers.
+45. Interpret data from the readers' point of view.
+46. Do not confuse conclusions with recommendations, and do not allow your readers to confuse them. A section entitled "Conclusions and Recommendations" is a crime against clear thinking.
+47. Make the boss aware of all costs.
+48. Make the boss aware of all options.
+49. Make the boss aware of all time factors.
+50. Make recommendations if action is required and you have the expertise to think clearly about that action. Engineering is a risky business, and engineers get paid for taking the risks of thinking about the implications of the facts for the theory, of the findings for the solution, and of the past for the future.
+51. Take responsibility for recommendations. Always make them in the active voice.
+52. Recommend action only to readers who can take action or order action.
+
+## Part 3: Don't use stilted AI language habits.
+Specific habits that make prose read as machine-generated. Actively avoid these.
+
+- **No stock openers or closers.** Never start with "I hope this finds you well," "Great question!," or similar throat-clearing. Never end with a generic wrap-up ("In conclusion...," "Overall, this demonstrates...") unless the content genuinely needs a summary.
+- **No em-dash tics or rhythmic triads.** Don't reflexively reach for em dashes for drama, and don't default to rule-of-three lists ("clear, concise, and compelling") as a crutch. 
 - **No hedge-stacking.** Say the thing. Don't pile "it's worth noting that," "it's important to remember," "one could argue" in front of a claim that doesn't need the padding.
 - **No false balance.** Don't manufacture a "both sides" close ("while there are challenges, there are also opportunities") when the material doesn't call for it.
 - **No empty transitions.** Cut "That said," "With that in mind," "Moving forward," and similar connective tissue that isn't doing real work.
 - **No listicle reflex.** Not everything is a bulleted list. If the content is a continuous thought, write it as prose.
-- **Do not trust words or phrases that come automatically to mind.** If a phrase would fit in almost any other document on almost any other topic, it's filler — cut it or make it specific to this one.
-- **Match elements that are parallel in meaning to parallel in form.** Inconsistent phrasing structure (mixing gerunds, infinitives, and imperatives in one list) reads as sloppy or synthetic.
-- **Do not shift person, number, tense, voice, or mood** unless the content requires it.
-- **Never do anything awkward. Write with your ear** — read it back; if it sounds like a template, it is one.
-
-## Mechanics
-
-- Do a thing the same way every time you do it (capitalization, list punctuation, heading style, terminology — pick one and stay consistent).
-- Use words as if they had meaning. Do not approximate.
-- Do not make a sentence longer or shorter than a comfortable thought. Get to the point in a single sentence where possible.
-- Make every word count.
-
-## Reports, Recommendations, and Data
-
-- Do not confuse conclusions with recommendations, and do not let the reader confuse them either.
-- Cover the reader: state the costs, the options, and the time factors when they're relevant to a decision.
-- Make recommendations only when action is required and you have the standing to think clearly about it — and take responsibility for them in the active voice.
-- Data is not the point; the meaning of the data is. State what something means, not just what it is.
-- Report negative or inconvenient findings if they have meaning for the reader. Don't bury the lede to soften it.
-
+- **Don't trust phrases that come automatically to mind.** If a phrase would fit in almost any other document on almost any other topic, it's filler — cut it or make it specific to this one.
+- **Keep parallel elements parallel in form.** Inconsistent phrasing structure (mixing gerunds, infinitives, and imperatives in one list) reads as sloppy or synthetic.
+- **Don't shift person, number, tense, voice, or mood** unless the content requires it.
+- **Write with your ear.** Read it back; if it sounds like a template, it is one.
+- **Avoid constrastive structure.** Constructs like "It's not X, it's Y", ""We're not just building a product, we're creating an experience.", or "Credit card fraud isn't just evolving—it's accelerating!" bury the lede, read as stilted and artificial, and should be avoided.

@@ -24,7 +24,17 @@
     ],
     "defaultMode": "acceptEdits"
   },
+  "model": "claude-opus-4-8",
   "autoUpdatesChannel": "stable",
   "theme": "auto",
   "model": "claude-sonnet-5"
+  "theme": "auto",
+  "extraKnownMarketplaces": {
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/skills"
+      }
+    }
+  }
 }

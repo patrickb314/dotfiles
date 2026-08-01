@@ -8,8 +8,10 @@
 - Prefer self-documenting code to explanatory comments
 - Use `&>/dev/null` instead of `>/dev/null 2>&1`
 - You may be running as `sandvault-<user>` inside a macOS sandbox
-- Avoid em-dashes (prefer semicolons, colons and commas) and Oxford commas
-- Use UK spelling and punctuation
+- Avoid em-dashes (prefer semicolons, colons and commas) 
+- Always use the Oxford comma
+- Use US spelling and punctuation
+- Use python virtual environments for any needed software packages
 
 ## Git Commits
 

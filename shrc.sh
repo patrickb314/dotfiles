@@ -147,7 +147,6 @@ if quiet_which htop; then
 fi
 
 if quiet_which claude; then
-
   # Current Prod Instance
   export CLAUDE_CODE_USE_FOUNDRY=1 
   export CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1 

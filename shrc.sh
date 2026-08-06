@@ -151,7 +151,7 @@ if quiet_which claude; then
   # Current Prod Instance
   export CLAUDE_CODE_USE_FOUNDRY=1 
   export CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1 
-  export ANTHROPIC_FOUNDRY_BASE_URL="https://apim-n1ai-usw2-89fbd882c.azure-api.net/"
+  export ANTHROPIC_FOUNDRY_BASE_URL="https://apim-n1ai-usw2-89fbd882c.azure-api.net/anthropic/"
   export ANTHROPIC_FOUNDRY_API_KEY="58a46c4ae7154147b2e10ec22d556d60"
   #
   # Broken Dev Instance

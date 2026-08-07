@@ -58,3 +58,5 @@ test/js/functional/*.html
 *.log
 *.toc
 *.fdb_latexmk
+
+**/.claude/.cc-writes/

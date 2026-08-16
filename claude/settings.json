@@ -34,5 +34,5 @@
   },
   "autoUpdatesChannel": "stable",
   "theme": "auto",
-  "model": "claude-sonnet-5-0"
+  "model": "claude-opus-5"
 }

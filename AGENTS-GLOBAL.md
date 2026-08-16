@@ -34,10 +34,7 @@
 
 # Writing Style Guide
 
-Source material: *The Gospel According to Embree*  (https://www.cs.unm.edu/~bridges/embree-gospel.pdf) and 
-Strunk & White's *The Elements of Style*. Purpose: write like a competent human, not an AI. When in doubt, cut.
-
-# Writing Style Guide
+Source: Strunk & White's *The Elements of Style*. Purpose: write like a competent human, not an AI. When in doubt, cut.
 
 ## Part 1: Strunk & White Principles
 - Omit needless words. A sentence should contain no unnecessary words, a paragraph no unnecessary sentences, for the same reason a drawing should have no unnecessary lines.
@@ -54,72 +51,7 @@ Strunk & White's *The Elements of Style*. Purpose: write like a competent human,
 - Revise and rewrite. Few writers are so expert that they can produce what they are after on the first try.
 - Write in a way that draws the reader's attention to the sense and substance of the writing, not to the mood and temper of the author.
 
----
-## Part 2: The Gospel According to Embree (numbered points quoted verbatim from https://www.cs.unm.edu/~bridges/embree-gospel.pdf )
-
-### Readers
-1. Know who your readers are. Estimate what they know, understand, want, need, expect.
-2. Write to your readers, not to yourself.
-3. Fear your readers' scorn.
-4. Do not assume that your readers automatically understand you.
-5. Orient your readers before you do anything else.
-6. Organize and control your readers' thoughts.
-7. Make a tight connection between the job you want done and the person you want to do it.
-8. Make your readers' job easy even if it means making yours hard.
-9. Do not give your readers details they cannot use.
-10. Do not insult your readers by explaining what they only need to be reminded of.
-
-### Organization
-11. Do not assume that your readers will read your whole document unless they have a compelling reason to; do not assume they will read from beginning to end unless they have a compelling reason to.
-12. Provide for lateral entry whenever your readers need to find their own ways through a document; do not provide for lateral entry whenever you need to compel your readers to read straight through.
-13. Do not write essays unless you are being paid to write essays.
-14. Do not write narrative unless the sequence of events is itself important.
-15. Present parallel ideas in the order of importance, sequential ideas in the order of sequence.
-16. Keep non-essential elements out of the way of essential elements.
-17. Do not set up rival centers of interest.
-
-### Tone
-18. Sound like an engineer dressed for work. Maintain a business-like, matter-of-fact, straight-from-the-shoulder, no-nonsense professional tone; do not be stuffy, pompous, familiar, pushy, obsequious, or cute.
-19. Do not split your personality in a single document.
-20. Do not write fiction on company time: eliminate surprise and suspense.
-21. Think. Do not feel on company time.
-
-### Execution
-22. Do not undermine your readers' confidence by making mechanical errors, by using inconsistent styles, or by writing in Chucklehead.
-23. Make elements that are parallel in meaning parallel in form.
-24. Do a thing the same way every time you do it.
-25. Do not use two words where one will do.
-26. Do not use a 50-cent word where a nickel word will do.
-27. Make every word count.
-28. Do not trust words or phrases that come automatically to mind.
-29. Let nouns do the job of nouns; let conjugated verbs do the job of conjugated verbs.
-30. Use words as if they had meaning.
-31. Do not approximate meaning.
-32. Get to the point in a single sentence.
-33. Do not make a sentence longer or shorter than a comfortable thought.
-34. Do not use the passive voice unless you have a good reason. (There are good reasons: indifference to, ignorance of, or desire to de-emphasize the doer of an action.)
-35. Do not shift person, number, tense, voice, or mood unless you have a shift in content or in point of view that requires it.
-36. Never do anything awkward. Write with your ear.
-
-### Reports - Specific guidance to follow with working on technical reports
-37. Write from the point of view of expert knowledge to the point of view of relatively uninformed power. Reports are intended to make knowledge available to power.
-38. Do not assume that your primary reader is your only reader. Do not assume that this week's readers are next year's readers. Reports must carry their contexts with them.
-39. Do not provide as much context for routine reports as for special reports. Much of the context for routine reports is provided by the file into which they go.
-40. Do not assume that the objective of your investigation or research is obvious. Do not tell your readers that your objective is to solve the problem. That is obvious.
-41. Make yourself invisible in scientific reports conducted by scientific rigor; make yourself visible in investigative reports conducted by informed analysis and judgment.
-42. Cover yourself. Record any conditions, deadlines, or restrictions that qualify your data or limit your action.
-43. Do not hunker on the data. Data itself is never as important as the meaning of the data. Technicians can produce data; engineers say what it means.
-44. Report negative data if it has meaning for your readers.
-45. Interpret data from the readers' point of view.
-46. Do not confuse conclusions with recommendations, and do not allow your readers to confuse them. A section entitled "Conclusions and Recommendations" is a crime against clear thinking.
-47. Make the boss aware of all costs.
-48. Make the boss aware of all options.
-49. Make the boss aware of all time factors.
-50. Make recommendations if action is required and you have the expertise to think clearly about that action. Engineering is a risky business, and engineers get paid for taking the risks of thinking about the implications of the facts for the theory, of the findings for the solution, and of the past for the future.
-51. Take responsibility for recommendations. Always make them in the active voice.
-52. Recommend action only to readers who can take action or order action.
-
-## Part 3: Don't use stilted AI language habits.
+## Part 2: Don't use stilted AI language habits.
 Specific habits that make prose read as machine-generated. Actively avoid these.
 
 - **No stock openers or closers.** Never start with "I hope this finds you well," "Great question!," or similar throat-clearing. Never end with a generic wrap-up ("In conclusion...," "Overall, this demonstrates...") unless the content genuinely needs a summary.

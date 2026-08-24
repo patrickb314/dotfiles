@@ -4,6 +4,9 @@ source ~/.zprofile
 # load shared shell configuration
 source ~/.shrc
 
+# load LastPass-backed service logins (ssh, github, claude, ...)
+source ~/.credlogin
+
 # History file
 export HISTFILE=~/.zsh_history
 

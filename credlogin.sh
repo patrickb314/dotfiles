@@ -7,6 +7,7 @@
 #   credlogin logout <service>
 #   credlogin list [service]
 #   credlogin add <service> <instance>
+#   credlogin set <service> <instance>
 #   credlogin status
 #
 # Entries live in LastPass at "Shell Logins/<service>/<instance>", with all
@@ -31,7 +32,8 @@ credlogin() {
     login) __credlogin_login "${service}" "${instance}" ;;
     logout) __credlogin_logout "${service}" ;;
     list|ls) __credlogin_list "${service}" ;;
-    add) __credlogin_add "${service}" "${instance}" ;;
+    add) __credlogin_store add "${service}" "${instance}" ;;
+    set) __credlogin_store set "${service}" "${instance}" ;;
     status) __credlogin_status ;;
     *) __credlogin_usage ;;
   esac
@@ -44,6 +46,7 @@ usage: credlogin <verb> <service> [instance]
   logout <service>             undo the active login for that service
   list [service]                list services, or instances of one service
   add <service> <instance>     store a new instance's credentials in LastPass
+  set <service> <instance>     replace an existing instance's credentials
   status                        show what's currently logged in
 EOF
 }
@@ -130,10 +133,10 @@ __credlogin_list() {
   lpass ls "Shell Logins/${service}" 2>/dev/null | sed -E "s#^Shell Logins/${service}/##"
 }
 
-__credlogin_add() {
-  local service="$1" instance="$2"
+__credlogin_store() {
+  local verb="$1" service="$2" instance="$3"
   if [[ -z "${service}" || -z "${instance}" ]]; then
-    echo "usage: credlogin add <service> <instance>" >&2
+    echo "usage: credlogin ${verb} <service> <instance>" >&2
     return 1
   fi
 
@@ -165,8 +168,20 @@ __credlogin_add() {
     value="${blob}"
   fi
 
-  lpass add --non-interactive --sync=now --notes "${item_path}" <<<"${value}" || return 1
-  echo "credlogin: added ${item_path}"
+  # `lpass add` always creates, so re-adding a path that already exists leaves
+  # two items with the same name and every later `lpass show` on it dies as
+  # ambiguous; `lpass edit` is the one that replaces an entry in place. Either
+  # way --notes rewrites the whole blob, so `set` re-prompts for every field:
+  # answering blank is how you clear one (login skips empty values).
+  local lpass_verb="add" past_tense="added"
+  if [[ "${verb}" == "set" ]]; then
+    lpass_verb="edit"
+    past_tense="updated"
+  fi
+
+  lpass "${lpass_verb}" --non-interactive --sync=now --notes "${item_path}" \
+    <<<"${value}" || return 1
+  echo "credlogin: ${past_tense} ${item_path}"
 }
 
 __credlogin_status() {

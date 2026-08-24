@@ -10,6 +10,7 @@
       "Bash(git log *)",
       "Bash(git pull)",
       "Bash(git pull *)",
+      "Base(git push)",
       "Bash(git show)",
       "Bash(git show *)",
       "Bash(git status)",
@@ -19,10 +20,15 @@
       "Bash(git rebase *)"
     ],
     "deny": [
-      "Bash(git push)",
-      "Bash(git push *)"
+      "Bash(git push --force)"
     ],
     "defaultMode": "acceptEdits"
+  },
+  "bash": {
+    "deniedCommands": [
+      "git push --force",
+      "sudo"
+    ]
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
@@ -34,5 +40,5 @@
   },
   "autoUpdatesChannel": "stable",
   "theme": "auto",
-  "model": "claude-opus-5"
+  "model": "claude-sonnet-5"
 }

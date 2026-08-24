@@ -36,8 +36,6 @@ brew "gh"
 brew "git"
 # Syntax-highlighting pager for git and diff output
 brew "git-delta"
-# Foreman clone written in Go
-# brew "goreman"
 # Colorize logfiles and command output
 brew "grc"
 # Improved top (interactive process viewer)
@@ -80,17 +78,15 @@ cask "claude-code"
 cask "codex"
 # App to build and share containerised applications and microservices
 # cask "docker-desktop"
-# Terminal for orchestrating agents
-cask "superset"
 # Open-source code editor
-cask "vscodium"
+cask "visual-studio-code"
 # Video communication and virtual meeting platform
 cask "zoom"
 # Additional lastpass setups
 gem "lastpass-ssh"
 mas "LastPass for Safari", id: 6504626762
 mas "Slack", id: 803453959
-# VSCodium extensions
+# VSCodium extensions - still need to define these.
 #vscode "anykeyh.simplecov-vscode"
 #vscode "ban.spellright"
 #vscode "charliermarsh.ruff"

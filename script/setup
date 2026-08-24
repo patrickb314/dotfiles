@@ -187,18 +187,6 @@ if command -v "brew" >/dev/null; then
       done
     done
 
-    if [[ -f "${HOME}/.superset/hooks/notify.sh" ]]; then
-      [[ -d "${SANDVAULT_GUEST_HOME}/.superset/hooks" ]] || mkdir -p "${SANDVAULT_GUEST_HOME}/.superset/hooks"
-      sync_if_changed "${HOME}/.superset/hooks/notify.sh" "${SANDVAULT_GUEST_HOME}/.superset/hooks/notify.sh"
-
-      [[ -d "${DOTFILESDIR}/tmp" ]] || mkdir -p "${DOTFILESDIR}/tmp"
-      sed \
-        -e "s|${HOME}/|/Users/sandvault-${USER}/|g" \
-        -e "s|/Users/${USER}/|/Users/sandvault-${USER}/|g" \
-        "${DOTFILESDIR}/codex/hooks.json" > "${DOTFILESDIR}/tmp/sandvault-codex-hooks.json"
-      sync_if_changed "${DOTFILESDIR}/tmp/sandvault-codex-hooks.json" "${SANDVAULT_GUEST_HOME}/.codex/hooks.json"
-    fi
-
     for i in ".claude/CLAUDE.md" ".codex/AGENTS.md"; do
       sync_if_changed "${AGENTS_GLOBAL}" "${SANDVAULT_GUEST_HOME}/${i}"
     done

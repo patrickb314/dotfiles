@@ -10,7 +10,6 @@
       "Bash(git log *)",
       "Bash(git pull)",
       "Bash(git pull *)",
-      "Base(git push)",
       "Bash(git show)",
       "Bash(git show *)",
       "Bash(git status)",

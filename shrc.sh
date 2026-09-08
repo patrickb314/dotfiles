@@ -237,26 +237,14 @@ fi
 if quiet_which zed; then
   export EDITOR="zed"
   alias code="echo you like zed now, use that!"
+elif quiet_which vim; then
+  export EDITOR="vim"
 elif quiet_which cursor; then
   export EDITOR="cursor"
 elif quiet_which code; then
   export EDITOR="code"
 fi
 
-if quiet_which code; then
-  export GIT_EDITOR="${EDITOR} -w"
-  export SVN_EDITOR="${GIT_EDITOR}"
-
-  # Edit Rails credentials in VSCode
-  rails-credentials-edit-production() {
-    EDITOR="${EDITOR} -w" bundle exec rails credentials:edit --environment production
-  }
-  rails-credentials-edit-development() {
-    EDITOR="${EDITOR} -w" bundle exec rails credentials:edit --environment development
-  }
-else
-  export EDITOR="vim"
-fi
 
 # Save directory changes
 cd() {

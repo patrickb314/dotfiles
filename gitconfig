@@ -231,6 +231,7 @@
 [branch]
 	# Sort branches by committer date.
 	sort = -committerdate
+	autoSetupMerge = simple
 [tag]
 	# Sort tags by newest first
 	sort = -version:refname
@@ -263,3 +264,4 @@
 	directory = /Users/Shared/sv-bridges/worktrees/brew/*
 	directory = /Users/Shared/sv-bridges/worktrees/platform/*
 	directory = /Users/Shared/sv-bridges/projects/irregular-communication-phase-change
+	directory = /Users/Shared/sv-bridges/projects/sparse-matrix-analyzer

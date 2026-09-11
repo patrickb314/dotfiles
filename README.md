@@ -61,10 +61,11 @@ make `cd` state leak between sessions.
 
 `credlogin` ([`credlogin.sh`](credlogin.sh), installed as `~/.credlogin` and
 sourced by `zshrc.sh`) pulls per-service credentials out of LastPass into the
-current shell on demand. Nothing touches disk: secrets live only in exported
-environment variables, or in the ssh-agent, for the lifetime of that shell. Log
-in to the one service you need, in the one shell that needs it, and close the
-shell to revoke it.
+current shell on demand. Secrets live in exported environment variables, or in
+the ssh-agent, for the lifetime of that shell. Log in to the one service you
+need, in the one shell that needs it, and close the shell to revoke it. Only a
+value explicitly marked cacheable is also written to disk; see
+[Caching](#caching) below.
 
 It is ZSH-only, leaning on associative arrays and ZSH parameter expansion
 throughout, and the Bash startup files do not source it.
@@ -114,6 +115,7 @@ Most services are a list of environment variable settings and nothing more, so
 | `A,B,C` | one stored value (under key `A`) exported under all three names |
 | `NAME=value` | a fixed value, exported at every login |
 | `-NAME` | never exported, only cleared, for a variable that would conflict |
+| `+NAME` | a stored value that may also be cached on disk |
 | `@name` | labels the variant it appears in, so `login <service> <name>` selects that shape outright |
 | `--` | separates alternative shapes of the same service |
 
@@ -129,13 +131,37 @@ untouched. A successful one first clears every variable the spec mentions across
 all its variants, so switching instances never leaves a value behind from the
 shape that was active before.
 
+### Caching
+
+A value whose entry carries a `+` is also written to
+`~/.cache/shell/credlogin/<service>/<instance>` at login, in the same cache as
+`homebrew-shellenv.sh` and `github-token` and on the same weekly expiry. A
+later login reads it back and never calls LastPass at all, which is what keeps
+a fresh shell — or a sandbox account whose LastPass session has lapsed — from
+having to `lpass login` again.
+
+Caching is per variable and off by default, because the useful question is per
+credential: mark a token that is short-lived and revocable, and leave anything
+whose copy on disk would outlive the cache entry unmarked. The file is written
+with mode 600 inside the 700 cache directory.
+
+The cache is used only when it can carry a login on its own. A spec that mixes
+cached and uncached values still needs LastPass every time, so nothing is
+written for it: half a login on disk buys nothing. `add` and `set` delete the
+cached copy, since a replaced credential would otherwise keep being answered
+from the old one until it expired. `logout` does not: it unsets the variables
+this shell exported, and the cache exists precisely to outlive the shell.
+Delete `~/.cache/shell/credlogin` to force every service back to LastPass.
+
 ### Defined services
 
 - **`github`**: one stored token exported as `GITHUB_TOKEN`, `GH_TOKEN`,
   `HOMEBREW_GITHUB_API_TOKEN`, and `JEKYLL_GITHUB_TOKEN`. That same list appears
   in `shrc.sh`'s `export_github_token`, which the cached `gh`-CLI path uses at
   every shell start; `shrc.sh` is sourced by Bash too, so sharing one list would
-  need ZSH-only word splitting there.
+  need ZSH-only word splitting there. The token is cached, for the same reason
+  the `gh`-CLI one is: it expires and can be revoked, and the alternative is a
+  LastPass round trip in every shell.
 - **`claude`**: three labelled variants. `@foundry` sets
   `ANTHROPIC_FOUNDRY_API_KEY` and `ANTHROPIC_FOUNDRY_BASE_URL` for an Azure
   Foundry-proxied instance; `@api` sets a plain `ANTHROPIC_API_KEY`;
@@ -143,7 +169,8 @@ shape that was active before.
   against the subscription itself. The subscription variant pins
   `CLAUDE_CODE_USE_FOUNDRY=0` rather than leaving it unset, since a value
   inherited from a parent shell would otherwise still point Claude Code at
-  the proxy.
+  the proxy. Both key shapes are cached, so a sandbox account gets by on one
+  `lpass login` a week rather than one per agent shell.
 - **`codex`** and **`opencode`**: `OPENAI_API_KEY`/`OPENAI_BASE_URL?` and
   `OPENCODE_API_KEY`/`OPENCODE_BASE_URL?`. The variable names are placeholders
   and still need confirming against the two CLIs.
@@ -252,6 +279,12 @@ the host.
 That is the point of the arrangement. An agent running in the sandbox holds only
 the credentials you logged in to in its shell, for as long as that shell lives,
 and a `credlogin login claude subscription` needs no LastPass session at all.
+
+One `lpass login` in the sandbox covers the week for the cached services,
+because their cache lives in the sandbox home like everything else it writes.
+That is the trade the `+` marker makes: a `github` or `claude` key sits in
+`/Users/Shared/sv-<user>/user/.cache/shell/credlogin`, readable by the sandbox
+account, rather than being fetched afresh in every agent shell.
 
 ## The `bin` directory
 

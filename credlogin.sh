@@ -1,6 +1,8 @@
 # credlogin — pull per-service credentials out of LastPass into the current
-# shell, on demand. Nothing touches disk; secrets live only in exported env
-# vars (or the ssh-agent) for the lifetime of the shell.
+# shell, on demand. Secrets live in exported env vars (or the ssh-agent) for
+# the lifetime of the shell; the one exception is a value whose spec entry is
+# marked "+", which is also written to the shell cache under ~/.cache/shell so
+# that a later shell can log its service in without a LastPass session.
 #
 # Usage:
 #   credlogin login <service> <instance>
@@ -66,6 +68,8 @@ define entries, each naming one or more variables:
   A,B,C         one stored value (under key A) exported as all three names
   NAME=value    a fixed value, exported every login
   -NAME         never exported, only cleared — for a conflicting variable
+  +NAME         a stored value that may also live in the shell cache, so a
+                later login needs no LastPass session until the cache expires
   @name         labels the variant it appears in, so `login <service> <name>`
                 uses that shape outright; a variant that requires nothing
                 stored has to be labelled, and is reachable only by its name
@@ -106,11 +110,16 @@ __credlogin_kv() {
 
 # a service whose variables all have fixed values has nothing to fetch, so it
 # needs neither an instance nor a LastPass session — and neither does a
-# labelled variant of one that stores nothing, like claude's subscription shape
+# labelled variant of one that stores nothing, like claude's subscription
+# shape, nor a login the shell cache can still satisfy on its own
 __credlogin_needs_lastpass() {
-  local spec
-  spec="$(__credlogin_spec_variant "$1" "$2")" &&
-    { __credlogin_spec_reads_notes "${spec}"; return; }
+  local spec="${CREDLOGIN_SPEC[$1]}" variant
+  if [[ -n "${spec}" ]]; then
+    variant="$(__credlogin_spec_variant "$1" "$2")" && spec="${variant}"
+    __credlogin_spec_reads_notes "${spec}" || return 1
+    ! __credlogin_cached_notes "$1" "$2" "${spec}" &>/dev/null
+    return
+  fi
 
   local fields_var="_credlogin_${1}_fields"
   (( ${+parameters[${fields_var}]} )) || return 0
@@ -231,6 +240,13 @@ __credlogin_store() {
 
   lpass "${lpass_verb}" --non-interactive --sync=now --notes "${item_path}" \
     <<<"${value}" || return 1
+
+  # a cached copy of what was just replaced would otherwise go on answering
+  # logins with the old value until it expired
+  local cache_file
+  cache_file="$(__credlogin_cache_path "${service}" "${instance}")" &&
+    rm -f "${cache_file}"
+
   echo "credlogin: ${past_tense} ${item_path}"
 }
 
@@ -252,11 +268,20 @@ __credlogin_status() {
 # one place, and the fixed two-word prefix lets login split each line back
 # apart without caring what the value contains.
 __credlogin_spec_line() {
-  local entry="$1"
+  local entry="$1" inner
   case "${entry}" in
     --) print -r -- "--" ;;
     @?*) print -r -- "variant ${entry#@} " ;;
     -?*) print -r -- "clear ${entry#-} " ;;
+    # only a stored value can be cached: a literal is already in the spec, and
+    # the rest name no value at all
+    +?*)
+      inner="$(__credlogin_spec_line "${entry#+}")"
+      case "${inner%% *}" in
+        secret|optional) print -r -- "cached_${inner}" ;;
+        *) return 1 ;;
+      esac
+      ;;
     *=*) print -r -- "literal ${entry%%=*} ${entry#*=}" ;;
     *\?) print -r -- "optional ${entry%\?} " ;;
     *) print -r -- "secret ${entry} " ;;
@@ -287,7 +312,10 @@ __credlogin_define() {
     return 1
   }
   for entry in "$@"; do
-    line="$(__credlogin_spec_line "${entry}")"
+    line="$(__credlogin_spec_line "${entry}")" || {
+      echo "credlogin: '${entry}' names no stored value, so it cannot be cached" >&2
+      return 1
+    }
     if [[ "${line}" == "--" ]]; then
       [[ -n "${prev}" && "${prev}" != "--" ]] || {
         echo "credlogin: empty variant in ${service} spec" >&2
@@ -316,7 +344,7 @@ __credlogin_define() {
         }
         labelled=1
       fi
-      [[ "${kind}" == secret ]] && required=1
+      [[ "${kind}" == *secret ]] && required=1
       [[ "${kind}" == variant ]] || for name in ${(s:,:)names}; do
         [[ "${name}" =~ '^[A-Za-z_][A-Za-z0-9_]*$' ]] || {
           echo "credlogin: invalid variable name '${name}' in '${entry}'" >&2
@@ -325,7 +353,7 @@ __credlogin_define() {
       done
       # the first of an alias list is the key the value is stored under, so
       # that's the one add/set prompts for
-      [[ "${kind}" == secret || "${kind}" == optional ]] &&
+      [[ "${kind}" == *secret || "${kind}" == *optional ]] &&
         fields+=("${names%%,*}")
     fi
     spec+="${line}"$'\n'
@@ -385,9 +413,65 @@ __credlogin_spec_variant() {
 __credlogin_spec_reads_notes() {
   local line
   while IFS= read -r line; do
-    case "${line}" in secret\ *|optional\ *) return 0 ;; esac
+    case "${line%% *}" in *secret|*optional) return 0 ;; esac
   done <<<"$1"
   return 1
+}
+
+# Cacheable values — the ones whose entry carried a "+" — are copied into the
+# shell cache at login and read back from there until it expires, so a later
+# shell, or a sandbox account whose LastPass session is gone, can log the
+# service in without one. Caching is per variable and off by default: a value
+# that outlives its cache entry is a value left on disk for no gain.
+__credlogin_cache_path() {
+  [[ "$2" =~ '^[A-Za-z0-9][A-Za-z0-9._-]*$' ]] || return 1
+  echo "${SHELL_CACHE_DIR}/credlogin/${1}/${2}"
+}
+
+# the cached notes for a login, when they are fresh and complete enough to
+# resolve the spec alone; a partial cache is no use, since resolving it still
+# ends in the LastPass fetch it was meant to save
+__credlogin_cached_notes() {
+  local service="$1" instance="$2" spec="$3" file notes
+  file="$(__credlogin_cache_path "${service}" "${instance}")" || return 1
+  shell_cache_older_than_week "${file}" && return 1
+
+  notes="$(<"${file}")"
+  __credlogin_spec_resolve "${spec}" "${notes}" &>/dev/null || return 1
+  print -r -- "${notes}"
+}
+
+__credlogin_cache_write() {
+  local service="$1" instance="$2" spec="$3" notes="$4"
+  local file line key value blob=""
+  file="$(__credlogin_cache_path "${service}" "${instance}")" || return
+
+  while IFS= read -r line; do
+    [[ "${line%% *}" == cached_* ]] || continue
+    key="${${${line#* }%% *}%%,*}"
+    value="$(__credlogin_kv "${notes}" "${key}")" || continue
+    blob+="${key}=${value}"$'\n'
+  done <<<"${spec}"
+
+  # a blob the next login would have to go back to LastPass for anyway is one
+  # more copy of a secret on disk buying nothing
+  __credlogin_spec_resolve "${spec}" "${blob}" &>/dev/null || return
+
+  ensure_shell_cache_dir
+  mkdir -p -m 700 "${file:h}"
+  (umask 077; print -rn -- "${blob}" >| "${file}")
+}
+
+# the notes to resolve a login against: the cache when it can carry the login
+# on its own, otherwise LastPass, whose cacheable values are written back for
+# the shells that come after
+__credlogin_notes_for() {
+  local service="$1" instance="$2" spec="$3" notes
+  if ! notes="$(__credlogin_cached_notes "${service}" "${instance}" "${spec}")"; then
+    notes="$(__credlogin_notes "${service}" "${instance}")"
+    __credlogin_cache_write "${service}" "${instance}" "${spec}" "${notes}"
+  fi
+  print -r -- "${notes}"
 }
 
 __credlogin_spec_logout() {
@@ -397,21 +481,17 @@ __credlogin_spec_logout() {
   done
 }
 
-__credlogin_spec_login() {
-  local service="$1" instance="$2" spec notes line kind names name value
+# resolve variants in order and report the first that comes out whole as
+# "NAME value" lines. Nothing here touches the environment, so a failed login
+# is a no-op and a spec can be tried against the cache and the answer thrown
+# away when it comes up short.
+__credlogin_spec_resolve() {
+  local spec="$1" notes="$2" line kind names name value
   local ok=1 required=0 multi=0
-  local -a pending wanted
-
-  spec="$(__credlogin_spec_variant "${service}" "${instance}")" ||
-    spec="${CREDLOGIN_SPEC[${service}]}"
+  local -a pending
 
   [[ $'\n'"${spec}"$'\n' == *$'\n--\n'* ]] && multi=1
 
-  __credlogin_spec_reads_notes "${spec}" &&
-    notes="$(__credlogin_notes "${service}" "${instance}")"
-
-  # resolve variants in order and keep the first that comes out whole; nothing
-  # touches the environment until one does, so a failed login is a no-op
   while IFS= read -r line; do
     if [[ "${line}" == "--" ]]; then
       (( ok && (required || ! multi) )) && break
@@ -429,11 +509,11 @@ __credlogin_spec_login() {
 
     case "${kind}" in
       literal) pending+=("${names} ${value}") ;;
-      secret|optional)
-        [[ "${kind}" == secret ]] && required=1
+      *secret|*optional)
+        [[ "${kind}" == *secret ]] && required=1
         value="$(__credlogin_kv "${notes}" "${names%%,*}")"
         if [[ -z "${value}" ]]; then
-          [[ "${kind}" == optional ]] || ok=0
+          [[ "${kind}" == *optional ]] || ok=0
           continue
         fi
         for name in ${(s:,:)names}; do
@@ -443,9 +523,24 @@ __credlogin_spec_login() {
     esac
   done <<<"${spec}"
 
-  (( ok && (required || ! multi) )) || {
+  (( ok && (required || ! multi) )) || return 1
+  (( ${#pending} )) && print -rl -- "${pending[@]}"
+  return 0
+}
+
+__credlogin_spec_login() {
+  local service="$1" instance="$2" spec notes resolved line names item
+  local -a wanted
+
+  spec="$(__credlogin_spec_variant "${service}" "${instance}")" ||
+    spec="${CREDLOGIN_SPEC[${service}]}"
+
+  __credlogin_spec_reads_notes "${spec}" &&
+    notes="$(__credlogin_notes_for "${service}" "${instance}" "${spec}")"
+
+  resolved="$(__credlogin_spec_resolve "${spec}" "${notes}")" || {
     while IFS= read -r line; do
-      [[ "${line}" == secret\ * ]] || continue
+      [[ "${line%% *}" == *secret ]] || continue
       names="${line#* }"
       wanted+=("${${names%% *}%%,*}")
     done <<<"${spec}"
@@ -454,10 +549,10 @@ __credlogin_spec_login() {
   }
 
   __credlogin_spec_logout "${service}"
-  local item
-  for item in "${pending[@]}"; do
+  while IFS= read -r item; do
+    [[ -n "${item}" ]] || continue
     export "${item%% *}=${item#* }"
-  done
+  done <<<"${resolved}"
 }
 
 # ssh — the notes field holds the raw PEM private key directly (its one
@@ -503,8 +598,11 @@ _credlogin_ssh_logout() {
 # github — one stored token under every name that means "GitHub auth". That
 # list is spelled out again in shrc.sh's export_github_token, which the gh-CLI
 # path uses at every shell start; shrc.sh is sourced by bash too, so sharing
-# one list would need zsh-only word splitting there.
-credlogin define github GITHUB_TOKEN,GH_TOKEN,HOMEBREW_GITHUB_API_TOKEN,JEKYLL_GITHUB_TOKEN
+# one list would need zsh-only word splitting there. The token is cached for
+# the same reason shrc.sh caches the gh-CLI one: it is a revocable, expiring
+# token, and the alternative is logging in to LastPass again in every shell.
+credlogin define github \
+  +GITHUB_TOKEN,GH_TOKEN,HOMEBREW_GITHUB_API_TOKEN,JEKYLL_GITHUB_TOKEN
 
 # claude — replaces the hardcoded key block that used to live in shrc.sh.
 # Fill in ANTHROPIC_FOUNDRY_API_KEY/_BASE_URL for an Azure Foundry-proxied
@@ -512,14 +610,16 @@ credlogin define github GITHUB_TOKEN,GH_TOKEN,HOMEBREW_GITHUB_API_TOKEN,JEKYLL_G
 # `credlogin login claude subscription` needs no stored credentials at all:
 # Claude Code authenticates against the subscription itself, so the flags are
 # pinned off rather than left unset, since an inherited CLAUDE_CODE_USE_FOUNDRY
-# from a parent shell would otherwise still point it at the proxy.
+# from a parent shell would otherwise still point it at the proxy. Both key
+# shapes are cached, so a sandbox account gets by on one `lpass login` rather
+# than one per agent shell.
 credlogin define claude \
   @foundry \
-  ANTHROPIC_FOUNDRY_API_KEY ANTHROPIC_FOUNDRY_BASE_URL \
+  +ANTHROPIC_FOUNDRY_API_KEY +ANTHROPIC_FOUNDRY_BASE_URL \
   CLAUDE_CODE_USE_FOUNDRY=1 CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1 \
   -- \
   @api \
-  ANTHROPIC_API_KEY \
+  +ANTHROPIC_API_KEY \
   -- \
   @subscription \
   CLAUDE_CODE_USE_FOUNDRY=0 CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=0

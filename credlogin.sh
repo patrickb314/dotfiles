@@ -66,8 +66,11 @@ define entries, each naming one or more variables:
   A,B,C         one stored value (under key A) exported as all three names
   NAME=value    a fixed value, exported every login
   -NAME         never exported, only cleared — for a conflicting variable
-  --            separates alternative shapes of the same service; login uses
-                the first whose required values are all stored
+  @name         labels the variant it appears in, so `login <service> <name>`
+                uses that shape outright; a variant that requires nothing
+                stored has to be labelled, and is reachable only by its name
+  --            separates alternative shapes of the same service; an unlabelled
+                login uses the first whose required values are all stored
 EOF
 }
 
@@ -102,8 +105,13 @@ __credlogin_kv() {
 }
 
 # a service whose variables all have fixed values has nothing to fetch, so it
-# needs neither an instance nor a LastPass session
+# needs neither an instance nor a LastPass session — and neither does a
+# labelled variant of one that stores nothing, like claude's subscription shape
 __credlogin_needs_lastpass() {
+  local spec
+  spec="$(__credlogin_spec_variant "$1" "$2")" &&
+    { __credlogin_spec_reads_notes "${spec}"; return; }
+
   local fields_var="_credlogin_${1}_fields"
   (( ${+parameters[${fields_var}]} )) || return 0
 
@@ -125,7 +133,7 @@ __credlogin_login() {
     return 1
   }
 
-  if __credlogin_needs_lastpass "${service}"; then
+  if __credlogin_needs_lastpass "${service}" "${instance}"; then
     if [[ -z "${instance}" ]]; then
       echo "usage: credlogin login <service> <instance>" >&2
       return 1
@@ -247,6 +255,7 @@ __credlogin_spec_line() {
   local entry="$1"
   case "${entry}" in
     --) print -r -- "--" ;;
+    @?*) print -r -- "variant ${entry#@} " ;;
     -?*) print -r -- "clear ${entry#-} " ;;
     *=*) print -r -- "literal ${entry%%=*} ${entry#*=}" ;;
     *\?) print -r -- "optional ${entry%\?} " ;;
@@ -266,8 +275,17 @@ __credlogin_define() {
     return 1
   }
 
-  local entry line kind names name prev="" spec=""
+  # a variant requiring nothing stored resolves against any instance at all, so
+  # letting login fall through to one would turn every mistyped instance into a
+  # silent success; such a variant must be labelled and is then reachable only
+  # by its name
+  local entry line kind names name prev="" spec="" required=0 labelled=0 multi=0
   local -a fields
+  __credlogin_reachable() {
+    (( required || labelled )) && return 0
+    echo "credlogin: a variant of ${service} requires nothing stored, so it would match every instance — label it with @name" >&2
+    return 1
+  }
   for entry in "$@"; do
     line="$(__credlogin_spec_line "${entry}")"
     if [[ "${line}" == "--" ]]; then
@@ -275,6 +293,10 @@ __credlogin_define() {
         echo "credlogin: empty variant in ${service} spec" >&2
         return 1
       }
+      __credlogin_reachable || return 1
+      required=0
+      labelled=0
+      multi=1
     else
       kind="${line%% *}"
       names="${line#* }"
@@ -283,7 +305,19 @@ __credlogin_define() {
         echo "credlogin: '${entry}' names no variable" >&2
         return 1
       }
-      for name in ${(s:,:)names}; do
+      if [[ "${kind}" == variant ]]; then
+        # a variant label is matched against the instance argument, so it
+        # follows LastPass item naming rather than the C identifier rule.
+        # Checked against the rest of the line, not just its first word, so a
+        # label with a space in it fails instead of being quietly truncated.
+        [[ "${${line#* }% }" =~ '^[A-Za-z0-9][A-Za-z0-9._-]*$' ]] || {
+          echo "credlogin: invalid variant name '${entry#@}'" >&2
+          return 1
+        }
+        labelled=1
+      fi
+      [[ "${kind}" == secret ]] && required=1
+      [[ "${kind}" == variant ]] || for name in ${(s:,:)names}; do
         [[ "${name}" =~ '^[A-Za-z_][A-Za-z0-9_]*$' ]] || {
           echo "credlogin: invalid variable name '${name}' in '${entry}'" >&2
           return 1
@@ -301,6 +335,10 @@ __credlogin_define() {
     echo "credlogin: empty variant in ${service} spec" >&2
     return 1
   }
+  if (( multi )); then
+    __credlogin_reachable || return 1
+  fi
+  unfunction __credlogin_reachable
 
   CREDLOGIN_SPEC[${service}]="${spec%$'\n'}"
   typeset -ga "_credlogin_${service}_fields"
@@ -316,10 +354,40 @@ __credlogin_define() {
 __credlogin_spec_vars() {
   local line names
   while IFS= read -r line; do
-    [[ "${line}" == "--" ]] && continue
+    [[ "${line}" == "--" || "${line}" == variant\ * ]] && continue
     names="${line#* }"
     print -rl -- ${(s:,:)${names%% *}}
   done <<<"${CREDLOGIN_SPEC[$1]}"
+}
+
+# the lines of the variant an instance labels with an `@name` entry, if any.
+# Naming a shape outright keeps a mistyped instance an error instead of a
+# quiet slide into whichever later variant happens to need nothing stored.
+__credlogin_spec_variant() {
+  local service="$1" instance="$2" line found=0 variant=""
+  [[ -n "${instance}" ]] || return 1
+
+  while IFS= read -r line; do
+    if [[ "${line}" == "--" ]]; then
+      (( found )) && break
+      variant=""
+    elif [[ "${line}" == "variant ${instance} " ]]; then
+      found=1
+    else
+      variant+="${line}"$'\n'
+    fi
+  done <<<"${CREDLOGIN_SPEC[${service}]}"
+
+  (( found )) || return 1
+  print -rn -- "${variant}"
+}
+
+__credlogin_spec_reads_notes() {
+  local line
+  while IFS= read -r line; do
+    case "${line}" in secret\ *|optional\ *) return 0 ;; esac
+  done <<<"$1"
+  return 1
 }
 
 __credlogin_spec_logout() {
@@ -330,18 +398,25 @@ __credlogin_spec_logout() {
 }
 
 __credlogin_spec_login() {
-  local service="$1" instance="$2" notes line kind names name value ok=1
-  local -a pending
+  local service="$1" instance="$2" spec notes line kind names name value
+  local ok=1 required=0 multi=0
+  local -a pending wanted
 
-  __credlogin_needs_lastpass "${service}" &&
+  spec="$(__credlogin_spec_variant "${service}" "${instance}")" ||
+    spec="${CREDLOGIN_SPEC[${service}]}"
+
+  [[ $'\n'"${spec}"$'\n' == *$'\n--\n'* ]] && multi=1
+
+  __credlogin_spec_reads_notes "${spec}" &&
     notes="$(__credlogin_notes "${service}" "${instance}")"
 
   # resolve variants in order and keep the first that comes out whole; nothing
   # touches the environment until one does, so a failed login is a no-op
   while IFS= read -r line; do
     if [[ "${line}" == "--" ]]; then
-      (( ok )) && break
+      (( ok && (required || ! multi) )) && break
       ok=1
+      required=0
       pending=()
       continue
     fi
@@ -355,6 +430,7 @@ __credlogin_spec_login() {
     case "${kind}" in
       literal) pending+=("${names} ${value}") ;;
       secret|optional)
+        [[ "${kind}" == secret ]] && required=1
         value="$(__credlogin_kv "${notes}" "${names%%,*}")"
         if [[ -z "${value}" ]]; then
           [[ "${kind}" == optional ]] || ok=0
@@ -365,11 +441,15 @@ __credlogin_spec_login() {
         done
         ;;
     esac
-  done <<<"${CREDLOGIN_SPEC[${service}]}"
+  done <<<"${spec}"
 
-  local fields_var="_credlogin_${service}_fields"
-  (( ok )) || {
-    echo "credlogin: no usable fields for ${service}/${instance} (looked for: ${(@P)fields_var})" >&2
+  (( ok && (required || ! multi) )) || {
+    while IFS= read -r line; do
+      [[ "${line}" == secret\ * ]] || continue
+      names="${line#* }"
+      wanted+=("${${names%% *}%%,*}")
+    done <<<"${spec}"
+    echo "credlogin: no usable fields for ${service}/${instance} (looked for: ${wanted})" >&2
     return 1
   }
 
@@ -429,18 +509,27 @@ credlogin define github GITHUB_TOKEN,GH_TOKEN,HOMEBREW_GITHUB_API_TOKEN,JEKYLL_G
 # claude — replaces the hardcoded key block that used to live in shrc.sh.
 # Fill in ANTHROPIC_FOUNDRY_API_KEY/_BASE_URL for an Azure Foundry-proxied
 # instance, or just ANTHROPIC_API_KEY for a plain direct-API instance.
+# `credlogin login claude subscription` needs no stored credentials at all:
+# Claude Code authenticates against the subscription itself, so the flags are
+# pinned off rather than left unset, since an inherited CLAUDE_CODE_USE_FOUNDRY
+# from a parent shell would otherwise still point it at the proxy.
 credlogin define claude \
+  @foundry \
   ANTHROPIC_FOUNDRY_API_KEY ANTHROPIC_FOUNDRY_BASE_URL \
   CLAUDE_CODE_USE_FOUNDRY=1 CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1 \
   -- \
-  ANTHROPIC_API_KEY
+  @api \
+  ANTHROPIC_API_KEY \
+  -- \
+  @subscription \
+  CLAUDE_CODE_USE_FOUNDRY=0 CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=0
 
 # codex/opencode — TODO: confirm the exact env vars the Codex CLI and opencode
 # expect; these names are placeholders.
 credlogin define codex OPENAI_API_KEY OPENAI_BASE_URL?
 credlogin define opencode OPENCODE_API_KEY OPENCODE_BASE_URL?
 
-# machine-specific or private service definitions, kept out of the repo
+# per-machine or otherwise unshared service definitions
 [[ -r ~/.credlogin.local ]] && source ~/.credlogin.local
 
 # to avoid non-zero exit code

@@ -263,5 +263,4 @@
 	directory = /Users/Shared/sv-bridges/repositories/*
 	directory = /Users/Shared/sv-bridges/worktrees/brew/*
 	directory = /Users/Shared/sv-bridges/worktrees/platform/*
-	directory = /Users/Shared/sv-bridges/projects/irregular-communication-phase-change
-	directory = /Users/Shared/sv-bridges/projects/sparse-matrix-analyzer
+	directory = /Users/Shared/sv-bridges/projects/*

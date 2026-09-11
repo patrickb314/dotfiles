@@ -8,6 +8,7 @@
 #   credlogin list [service]
 #   credlogin add <service> <instance>
 #   credlogin set <service> <instance>
+#   credlogin define <service> <entry>...
 #   credlogin status
 #
 # Entries live in LastPass at "Shell Logins/<service>/<instance>", with all
@@ -19,12 +20,17 @@
 # with exactly one field named "notes" instead stores its raw, unwrapped
 # value there (used by ssh, whose PEM key can't be squeezed onto one line).
 #
-# A service is any pair of functions named _credlogin_<service>_login/_logout
-# plus a _credlogin_<service>_fields array of the KEY names it needs — no
-# central registry to keep in sync.
+# Most services are declared with `credlogin define`, which takes a list of
+# environment variable settings and generates the functions below from it; see
+# __credlogin_define for the entry grammar. A service that needs real logic
+# instead (ssh) is still just a pair of functions named
+# _credlogin_<service>_login/_logout plus a _credlogin_<service>_fields array
+# of the KEY names it needs — there's no central registry to keep in sync
+# either way.
 
 typeset -gA CREDLOGIN_ACTIVE
 typeset -gA CREDLOGIN_SSH_PUBKEY
+typeset -gA CREDLOGIN_SPEC
 
 credlogin() {
   local verb="$1" service="$2" instance="$3"
@@ -34,10 +40,14 @@ credlogin() {
     list|ls) __credlogin_list "${service}" ;;
     add) __credlogin_store add "${service}" "${instance}" ;;
     set) __credlogin_store set "${service}" "${instance}" ;;
+    define) __credlogin_define "${service}" "${@:3}" ;;
     status) __credlogin_status ;;
     *) __credlogin_usage ;;
   esac
 }
+
+# so a `NAME?` entry doesn't have to be quoted past zsh's globbing
+alias credlogin='noglob credlogin'
 
 __credlogin_usage() {
   cat >&2 <<'EOF'
@@ -47,7 +57,20 @@ usage: credlogin <verb> <service> [instance]
   list [service]                list services, or instances of one service
   add <service> <instance>     store a new instance's credentials in LastPass
   set <service> <instance>     replace an existing instance's credentials
+  define <service> <entry>...  declare a service as a list of env var settings
   status                        show what's currently logged in
+
+define entries, each naming one or more variables:
+  NAME          required value, read from the NAME= line of the notes field
+  NAME?         same, but login still succeeds when it isn't stored
+  A,B,C         one stored value (under key A) exported as all three names
+  NAME=value    a fixed value, exported every login
+  -NAME         never exported, only cleared — for a conflicting variable
+  @name         labels the variant it appears in, so `login <service> <name>`
+                uses that shape outright; a variant that requires nothing
+                stored has to be labelled, and is reachable only by its name
+  --            separates alternative shapes of the same service; an unlabelled
+                login uses the first whose required values are all stored
 EOF
 }
 
@@ -81,9 +104,25 @@ __credlogin_kv() {
   return 1
 }
 
+# a service whose variables all have fixed values has nothing to fetch, so it
+# needs neither an instance nor a LastPass session — and neither does a
+# labelled variant of one that stores nothing, like claude's subscription shape
+__credlogin_needs_lastpass() {
+  local spec
+  spec="$(__credlogin_spec_variant "$1" "$2")" &&
+    { __credlogin_spec_reads_notes "${spec}"; return; }
+
+  local fields_var="_credlogin_${1}_fields"
+  (( ${+parameters[${fields_var}]} )) || return 0
+
+  local -a fields
+  fields=("${(@P)fields_var}")
+  (( ${#fields} ))
+}
+
 __credlogin_login() {
   local service="$1" instance="$2"
-  if [[ -z "${service}" || -z "${instance}" ]]; then
+  if [[ -z "${service}" ]]; then
     echo "usage: credlogin login <service> <instance>" >&2
     return 1
   fi
@@ -94,9 +133,16 @@ __credlogin_login() {
     return 1
   }
 
-  __credlogin_ready || return 1
+  if __credlogin_needs_lastpass "${service}" "${instance}"; then
+    if [[ -z "${instance}" ]]; then
+      echo "usage: credlogin login <service> <instance>" >&2
+      return 1
+    fi
+    __credlogin_ready || return 1
+  fi
+
   "${login_fn}" "${instance}" || return 1
-  CREDLOGIN_ACTIVE[${service}]="${instance}"
+  CREDLOGIN_ACTIVE[${service}]="${instance:-on}"
 }
 
 __credlogin_logout() {
@@ -149,6 +195,10 @@ __credlogin_store() {
 
   local -a fields
   fields=("${(@P)fields_var}")
+  (( ${#fields} )) || {
+    echo "credlogin: ${service} stores nothing in LastPass" >&2
+    return 1
+  }
 
   local item_path
   item_path="$(__credlogin_item_path "${service}" "${instance}")"
@@ -196,6 +246,220 @@ __credlogin_status() {
   done
 }
 
+# Specs are stored one entry per line as "<kind> <names> <value>", with the
+# value running to the end of the line and "--" alone on a line between
+# variants. Translating at define time means the grammar is parsed in exactly
+# one place, and the fixed two-word prefix lets login split each line back
+# apart without caring what the value contains.
+__credlogin_spec_line() {
+  local entry="$1"
+  case "${entry}" in
+    --) print -r -- "--" ;;
+    @?*) print -r -- "variant ${entry#@} " ;;
+    -?*) print -r -- "clear ${entry#-} " ;;
+    *=*) print -r -- "literal ${entry%%=*} ${entry#*=}" ;;
+    *\?) print -r -- "optional ${entry%\?} " ;;
+    *) print -r -- "secret ${entry} " ;;
+  esac
+}
+
+__credlogin_define() {
+  local service="$1"
+  shift
+  if [[ -z "${service}" || $# -eq 0 ]]; then
+    echo "usage: credlogin define <service> <entry>..." >&2
+    return 1
+  fi
+  [[ "${service}" =~ '^[A-Za-z_][A-Za-z0-9_]*$' ]] || {
+    echo "credlogin: invalid service name '${service}'" >&2
+    return 1
+  }
+
+  # a variant requiring nothing stored resolves against any instance at all, so
+  # letting login fall through to one would turn every mistyped instance into a
+  # silent success; such a variant must be labelled and is then reachable only
+  # by its name
+  local entry line kind names name prev="" spec="" required=0 labelled=0 multi=0
+  local -a fields
+  __credlogin_reachable() {
+    (( required || labelled )) && return 0
+    echo "credlogin: a variant of ${service} requires nothing stored, so it would match every instance — label it with @name" >&2
+    return 1
+  }
+  for entry in "$@"; do
+    line="$(__credlogin_spec_line "${entry}")"
+    if [[ "${line}" == "--" ]]; then
+      [[ -n "${prev}" && "${prev}" != "--" ]] || {
+        echo "credlogin: empty variant in ${service} spec" >&2
+        return 1
+      }
+      __credlogin_reachable || return 1
+      required=0
+      labelled=0
+      multi=1
+    else
+      kind="${line%% *}"
+      names="${line#* }"
+      names="${names%% *}"
+      [[ -n "${names}" ]] || {
+        echo "credlogin: '${entry}' names no variable" >&2
+        return 1
+      }
+      if [[ "${kind}" == variant ]]; then
+        # a variant label is matched against the instance argument, so it
+        # follows LastPass item naming rather than the C identifier rule.
+        # Checked against the rest of the line, not just its first word, so a
+        # label with a space in it fails instead of being quietly truncated.
+        [[ "${${line#* }% }" =~ '^[A-Za-z0-9][A-Za-z0-9._-]*$' ]] || {
+          echo "credlogin: invalid variant name '${entry#@}'" >&2
+          return 1
+        }
+        labelled=1
+      fi
+      [[ "${kind}" == secret ]] && required=1
+      [[ "${kind}" == variant ]] || for name in ${(s:,:)names}; do
+        [[ "${name}" =~ '^[A-Za-z_][A-Za-z0-9_]*$' ]] || {
+          echo "credlogin: invalid variable name '${name}' in '${entry}'" >&2
+          return 1
+        }
+      done
+      # the first of an alias list is the key the value is stored under, so
+      # that's the one add/set prompts for
+      [[ "${kind}" == secret || "${kind}" == optional ]] &&
+        fields+=("${names%%,*}")
+    fi
+    spec+="${line}"$'\n'
+    prev="${line}"
+  done
+  [[ "${prev}" != "--" ]] || {
+    echo "credlogin: empty variant in ${service} spec" >&2
+    return 1
+  }
+  if (( multi )); then
+    __credlogin_reachable || return 1
+  fi
+  unfunction __credlogin_reachable
+
+  CREDLOGIN_SPEC[${service}]="${spec%$'\n'}"
+  typeset -ga "_credlogin_${service}_fields"
+  set -A "_credlogin_${service}_fields" "${(@u)fields}"
+  functions[_credlogin_${service}_login]='__credlogin_spec_login '"${service}"' "$1"'
+  functions[_credlogin_${service}_logout]='__credlogin_spec_logout '"${service}"
+}
+
+# every variable a spec mentions, across all of its variants and whatever kind
+# of entry named it: login clears this whole set before exporting anything, so
+# re-logging in or switching instances never leaves a variable behind from the
+# shape that was active before
+__credlogin_spec_vars() {
+  local line names
+  while IFS= read -r line; do
+    [[ "${line}" == "--" || "${line}" == variant\ * ]] && continue
+    names="${line#* }"
+    print -rl -- ${(s:,:)${names%% *}}
+  done <<<"${CREDLOGIN_SPEC[$1]}"
+}
+
+# the lines of the variant an instance labels with an `@name` entry, if any.
+# Naming a shape outright keeps a mistyped instance an error instead of a
+# quiet slide into whichever later variant happens to need nothing stored.
+__credlogin_spec_variant() {
+  local service="$1" instance="$2" line found=0 variant=""
+  [[ -n "${instance}" ]] || return 1
+
+  while IFS= read -r line; do
+    if [[ "${line}" == "--" ]]; then
+      (( found )) && break
+      variant=""
+    elif [[ "${line}" == "variant ${instance} " ]]; then
+      found=1
+    else
+      variant+="${line}"$'\n'
+    fi
+  done <<<"${CREDLOGIN_SPEC[${service}]}"
+
+  (( found )) || return 1
+  print -rn -- "${variant}"
+}
+
+__credlogin_spec_reads_notes() {
+  local line
+  while IFS= read -r line; do
+    case "${line}" in secret\ *|optional\ *) return 0 ;; esac
+  done <<<"$1"
+  return 1
+}
+
+__credlogin_spec_logout() {
+  local name
+  for name in $(__credlogin_spec_vars "$1"); do
+    unset "${name}"
+  done
+}
+
+__credlogin_spec_login() {
+  local service="$1" instance="$2" spec notes line kind names name value
+  local ok=1 required=0 multi=0
+  local -a pending wanted
+
+  spec="$(__credlogin_spec_variant "${service}" "${instance}")" ||
+    spec="${CREDLOGIN_SPEC[${service}]}"
+
+  [[ $'\n'"${spec}"$'\n' == *$'\n--\n'* ]] && multi=1
+
+  __credlogin_spec_reads_notes "${spec}" &&
+    notes="$(__credlogin_notes "${service}" "${instance}")"
+
+  # resolve variants in order and keep the first that comes out whole; nothing
+  # touches the environment until one does, so a failed login is a no-op
+  while IFS= read -r line; do
+    if [[ "${line}" == "--" ]]; then
+      (( ok && (required || ! multi) )) && break
+      ok=1
+      required=0
+      pending=()
+      continue
+    fi
+    (( ok )) || continue
+
+    kind="${line%% *}"
+    value="${line#* }"
+    names="${value%% *}"
+    value="${value#* }"
+
+    case "${kind}" in
+      literal) pending+=("${names} ${value}") ;;
+      secret|optional)
+        [[ "${kind}" == secret ]] && required=1
+        value="$(__credlogin_kv "${notes}" "${names%%,*}")"
+        if [[ -z "${value}" ]]; then
+          [[ "${kind}" == optional ]] || ok=0
+          continue
+        fi
+        for name in ${(s:,:)names}; do
+          pending+=("${name} ${value}")
+        done
+        ;;
+    esac
+  done <<<"${spec}"
+
+  (( ok && (required || ! multi) )) || {
+    while IFS= read -r line; do
+      [[ "${line}" == secret\ * ]] || continue
+      names="${line#* }"
+      wanted+=("${${names%% *}%%,*}")
+    done <<<"${spec}"
+    echo "credlogin: no usable fields for ${service}/${instance} (looked for: ${wanted})" >&2
+    return 1
+  }
+
+  __credlogin_spec_logout "${service}"
+  local item
+  for item in "${pending[@]}"; do
+    export "${item%% *}=${item#* }"
+  done
+}
+
 # ssh — the notes field holds the raw PEM private key directly (its one
 # field is literally named "notes", not packed as a KEY=value line), since
 # a private key is multi-line and can't sit on one line of that format.
@@ -236,103 +500,37 @@ _credlogin_ssh_logout() {
   unset "CREDLOGIN_SSH_PUBKEY[${instance}]"
 }
 
-# github — reuses the export_github_token helper already defined in shrc.sh
-# so there's one definition of "what env vars mean GitHub auth."
-typeset -ga _credlogin_github_fields
-_credlogin_github_fields=("GITHUB_TOKEN")
-
-_credlogin_github_login() {
-  local instance="$1" notes token
-  notes="$(__credlogin_notes github "${instance}")"
-  token="$(__credlogin_kv "${notes}" GITHUB_TOKEN)"
-  [[ -n "${token}" ]] || {
-    echo "credlogin: no 'GITHUB_TOKEN' field for github/${instance}" >&2
-    return 1
-  }
-  export_github_token "${token}"
-}
-
-_credlogin_github_logout() {
-  unset GITHUB_TOKEN GH_TOKEN HOMEBREW_GITHUB_API_TOKEN JEKYLL_GITHUB_TOKEN
-}
+# github — one stored token under every name that means "GitHub auth". That
+# list is spelled out again in shrc.sh's export_github_token, which the gh-CLI
+# path uses at every shell start; shrc.sh is sourced by bash too, so sharing
+# one list would need zsh-only word splitting there.
+credlogin define github GITHUB_TOKEN,GH_TOKEN,HOMEBREW_GITHUB_API_TOKEN,JEKYLL_GITHUB_TOKEN
 
 # claude — replaces the hardcoded key block that used to live in shrc.sh.
 # Fill in ANTHROPIC_FOUNDRY_API_KEY/_BASE_URL for an Azure Foundry-proxied
 # instance, or just ANTHROPIC_API_KEY for a plain direct-API instance.
-typeset -ga _credlogin_claude_fields
-_credlogin_claude_fields=("ANTHROPIC_API_KEY" "ANTHROPIC_FOUNDRY_API_KEY" "ANTHROPIC_FOUNDRY_BASE_URL")
+# `credlogin login claude subscription` needs no stored credentials at all:
+# Claude Code authenticates against the subscription itself, so the flags are
+# pinned off rather than left unset, since an inherited CLAUDE_CODE_USE_FOUNDRY
+# from a parent shell would otherwise still point it at the proxy.
+credlogin define claude \
+  @foundry \
+  ANTHROPIC_FOUNDRY_API_KEY ANTHROPIC_FOUNDRY_BASE_URL \
+  CLAUDE_CODE_USE_FOUNDRY=1 CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1 \
+  -- \
+  @api \
+  ANTHROPIC_API_KEY \
+  -- \
+  @subscription \
+  CLAUDE_CODE_USE_FOUNDRY=0 CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=0
 
-_credlogin_claude_login() {
-  local instance="$1" notes api_key foundry_key foundry_url
-  notes="$(__credlogin_notes claude "${instance}")"
-  foundry_key="$(__credlogin_kv "${notes}" ANTHROPIC_FOUNDRY_API_KEY)"
-  foundry_url="$(__credlogin_kv "${notes}" ANTHROPIC_FOUNDRY_BASE_URL)"
-  if [[ -n "${foundry_key}" && -n "${foundry_url}" ]]; then
-    export ANTHROPIC_FOUNDRY_API_KEY="${foundry_key}"
-    export ANTHROPIC_FOUNDRY_BASE_URL="${foundry_url}"
-    export CLAUDE_CODE_USE_FOUNDRY=1
-    export CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1
-    return
-  fi
+# codex/opencode — TODO: confirm the exact env vars the Codex CLI and opencode
+# expect; these names are placeholders.
+credlogin define codex OPENAI_API_KEY OPENAI_BASE_URL?
+credlogin define opencode OPENCODE_API_KEY OPENCODE_BASE_URL?
 
-  api_key="$(__credlogin_kv "${notes}" ANTHROPIC_API_KEY)"
-  [[ -n "${api_key}" ]] || {
-    echo "credlogin: no usable fields for claude/${instance}" >&2
-    return 1
-  }
-  export ANTHROPIC_API_KEY="${api_key}"
-}
-
-_credlogin_claude_logout() {
-  unset ANTHROPIC_API_KEY ANTHROPIC_FOUNDRY_API_KEY ANTHROPIC_FOUNDRY_BASE_URL \
-    CLAUDE_CODE_USE_FOUNDRY CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS
-}
-
-# codex — same shape as claude. TODO: confirm the exact env vars the Codex
-# CLI you use expects; OPENAI_API_KEY/OPENAI_BASE_URL are placeholders.
-typeset -ga _credlogin_codex_fields
-_credlogin_codex_fields=("OPENAI_API_KEY" "OPENAI_BASE_URL")
-
-_credlogin_codex_login() {
-  local instance="$1" notes api_key base_url
-  notes="$(__credlogin_notes codex "${instance}")"
-  api_key="$(__credlogin_kv "${notes}" OPENAI_API_KEY)"
-  [[ -n "${api_key}" ]] || {
-    echo "credlogin: no 'OPENAI_API_KEY' field for codex/${instance}" >&2
-    return 1
-  }
-  base_url="$(__credlogin_kv "${notes}" OPENAI_BASE_URL)"
-
-  export OPENAI_API_KEY="${api_key}"
-  [[ -n "${base_url}" ]] && export OPENAI_BASE_URL="${base_url}"
-}
-
-_credlogin_codex_logout() {
-  unset OPENAI_API_KEY OPENAI_BASE_URL
-}
-
-# opencode — same shape again. TODO: confirm the exact env vars opencode
-# expects; OPENCODE_API_KEY/OPENCODE_BASE_URL are placeholders.
-typeset -ga _credlogin_opencode_fields
-_credlogin_opencode_fields=("OPENCODE_API_KEY" "OPENCODE_BASE_URL")
-
-_credlogin_opencode_login() {
-  local instance="$1" notes api_key base_url
-  notes="$(__credlogin_notes opencode "${instance}")"
-  api_key="$(__credlogin_kv "${notes}" OPENCODE_API_KEY)"
-  [[ -n "${api_key}" ]] || {
-    echo "credlogin: no 'OPENCODE_API_KEY' field for opencode/${instance}" >&2
-    return 1
-  }
-  base_url="$(__credlogin_kv "${notes}" OPENCODE_BASE_URL)"
-
-  export OPENCODE_API_KEY="${api_key}"
-  [[ -n "${base_url}" ]] && export OPENCODE_BASE_URL="${base_url}"
-}
-
-_credlogin_opencode_logout() {
-  unset OPENCODE_API_KEY OPENCODE_BASE_URL
-}
+# per-machine or otherwise unshared service definitions
+[[ -r ~/.credlogin.local ]] && source ~/.credlogin.local
 
 # to avoid non-zero exit code
 true

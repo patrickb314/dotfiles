@@ -67,8 +67,9 @@ define entries, each naming one or more variables:
   NAME?         same, but login still succeeds when it isn't stored
   A,B,C         one stored value (under key A) exported as all three names
   NAME=value    a fixed value, exported every login
+  NAME=$(cmd)   a value produced by running cmd, not stored in LastPass at all
   -NAME         never exported, only cleared — for a conflicting variable
-  +NAME         a stored value that may also live in the shell cache, so a
+  +NAME         a fetched value that may also live in the shell cache, so a
                 later login needs no LastPass session until the cache expires
   @name         labels the variant it appears in, so `login <service> <name>`
                 uses that shape outright; a variant that requires nothing
@@ -111,11 +112,12 @@ __credlogin_kv() {
 # a service whose variables all have fixed values has nothing to fetch, so it
 # needs neither an instance nor a LastPass session — and neither does a
 # labelled variant of one that stores nothing, like claude's subscription
-# shape, nor a login the shell cache can still satisfy on its own
+# shape or github's gh-CLI shape, nor a login the shell cache can still
+# satisfy on its own
 __credlogin_needs_lastpass() {
-  local spec="${CREDLOGIN_SPEC[$1]}" variant
+  local spec="${CREDLOGIN_SPEC[$1]}"
   if [[ -n "${spec}" ]]; then
-    variant="$(__credlogin_spec_variant "$1" "$2")" && spec="${variant}"
+    spec="$(__credlogin_spec_for "$1" "$2")"
     __credlogin_spec_reads_notes "${spec}" || return 1
     ! __credlogin_cached_notes "$1" "$2" "${spec}" &>/dev/null
     return
@@ -273,15 +275,19 @@ __credlogin_spec_line() {
     --) print -r -- "--" ;;
     @?*) print -r -- "variant ${entry#@} " ;;
     -?*) print -r -- "clear ${entry#-} " ;;
-    # only a stored value can be cached: a literal is already in the spec, and
+    # only a fetched value can be cached: a literal is already in the spec, and
     # the rest name no value at all
     +?*)
       inner="$(__credlogin_spec_line "${entry#+}")"
       case "${inner%% *}" in
-        secret|optional) print -r -- "cached_${inner}" ;;
+        secret|optional|command) print -r -- "cached_${inner}" ;;
         *) return 1 ;;
       esac
       ;;
+    # a value written as a command substitution is produced by running that
+    # command at login rather than read from the notes field; every other
+    # entry with an "=" in it is a fixed value
+    *=\$\(*\)) print -r -- "command ${entry%%=*} ${${entry#*=\$\(}%\)}" ;;
     *=*) print -r -- "literal ${entry%%=*} ${entry#*=}" ;;
     *\?) print -r -- "optional ${entry%\?} " ;;
     *) print -r -- "secret ${entry} " ;;
@@ -410,6 +416,20 @@ __credlogin_spec_variant() {
   print -rn -- "${variant}"
 }
 
+# the spec a login resolves against: the variant the instance names, or every
+# shape but the command-sourced ones. A command hands out the same value for
+# any instance, so its variant is reachable only by its label, exactly like
+# any other variant that needs nothing stored.
+__credlogin_spec_for() {
+  local spec line
+  spec="$(__credlogin_spec_variant "$1" "$2")" && { print -rn -- "${spec}"; return }
+
+  while IFS= read -r line; do
+    [[ "${line%% *}" == *command ]] && continue
+    print -r -- "${line}"
+  done <<<"${CREDLOGIN_SPEC[$1]}"
+}
+
 __credlogin_spec_reads_notes() {
   local line
   while IFS= read -r line; do
@@ -434,9 +454,7 @@ __credlogin_cache_path() {
 __credlogin_cached_notes() {
   local service="$1" instance="$2" spec="$3" file notes
   file="$(__credlogin_cache_path "${service}" "${instance}")" || return 1
-  shell_cache_older_than_week "${file}" && return 1
-
-  notes="$(<"${file}")"
+  notes="$(shell_cache_read "${file}")" || return 1
   __credlogin_spec_resolve "${spec}" "${notes}" &>/dev/null || return 1
   print -r -- "${notes}"
 }
@@ -454,21 +472,41 @@ __credlogin_cache_write() {
   done <<<"${spec}"
 
   # a blob the next login would have to go back to LastPass for anyway is one
-  # more copy of a secret on disk buying nothing
+  # more copy of a secret on disk buying nothing, and a spec with nothing
+  # cacheable in it has no business leaving a file behind at all
+  [[ -n "${blob}" ]] || return
   __credlogin_spec_resolve "${spec}" "${blob}" &>/dev/null || return
 
-  ensure_shell_cache_dir
-  mkdir -p -m 700 "${file:h}"
-  (umask 077; print -rn -- "${blob}" >| "${file}")
+  print -rn -- "${blob}" | shell_cache_write "${file}"
+}
+
+# run the commands a spec sources values from and append what they print to
+# the notes, under the key the entry names. Everything downstream then sees
+# one shape whatever a value came from, so a command-sourced value resolves
+# and caches like a stored one.
+__credlogin_spec_run() {
+  local spec="$1" notes="$2" line key value
+  while IFS= read -r line; do
+    [[ "${line%% *}" == *command ]] || continue
+    key="${${${line#* }%% *}%%,*}"
+    __credlogin_kv "${notes}" "${key}" &>/dev/null && continue
+    value="$(eval "${${line#* }#* }" 2>/dev/null)" || continue
+    [[ -n "${value}" ]] || continue
+    [[ -n "${notes}" ]] && notes+=$'\n'
+    notes+="${key}=${value}"
+  done <<<"${spec}"
+  print -r -- "${notes}"
 }
 
 # the notes to resolve a login against: the cache when it can carry the login
-# on its own, otherwise LastPass, whose cacheable values are written back for
-# the shells that come after
+# on its own, otherwise LastPass and the spec's own commands, whose cacheable
+# values are written back for the shells that come after
 __credlogin_notes_for() {
   local service="$1" instance="$2" spec="$3" notes
   if ! notes="$(__credlogin_cached_notes "${service}" "${instance}" "${spec}")"; then
-    notes="$(__credlogin_notes "${service}" "${instance}")"
+    __credlogin_spec_reads_notes "${spec}" &&
+      notes="$(__credlogin_notes "${service}" "${instance}")"
+    notes="$(__credlogin_spec_run "${spec}" "${notes}")"
     __credlogin_cache_write "${service}" "${instance}" "${spec}" "${notes}"
   fi
   print -r -- "${notes}"
@@ -509,7 +547,10 @@ __credlogin_spec_resolve() {
 
     case "${kind}" in
       literal) pending+=("${names} ${value}") ;;
-      *secret|*optional)
+      # a command's value reached the notes the same way a stored one did, so
+      # only its kind tells them apart, and only for deciding whether this
+      # shape is one an unlabelled login may fall through to
+      *secret|*optional|*command)
         [[ "${kind}" == *secret ]] && required=1
         value="$(__credlogin_kv "${notes}" "${names%%,*}")"
         if [[ -z "${value}" ]]; then
@@ -532,15 +573,12 @@ __credlogin_spec_login() {
   local service="$1" instance="$2" spec notes resolved line names item
   local -a wanted
 
-  spec="$(__credlogin_spec_variant "${service}" "${instance}")" ||
-    spec="${CREDLOGIN_SPEC[${service}]}"
-
-  __credlogin_spec_reads_notes "${spec}" &&
-    notes="$(__credlogin_notes_for "${service}" "${instance}" "${spec}")"
+  spec="$(__credlogin_spec_for "${service}" "${instance}")"
+  notes="$(__credlogin_notes_for "${service}" "${instance}" "${spec}")"
 
   resolved="$(__credlogin_spec_resolve "${spec}" "${notes}")" || {
     while IFS= read -r line; do
-      [[ "${line%% *}" == *secret ]] || continue
+      [[ "${line%% *}" == *secret || "${line%% *}" == *command ]] || continue
       names="${line#* }"
       wanted+=("${${names%% *}%%,*}")
     done <<<"${spec}"
@@ -595,14 +633,17 @@ _credlogin_ssh_logout() {
   unset "CREDLOGIN_SSH_PUBKEY[${instance}]"
 }
 
-# github — one stored token under every name that means "GitHub auth". That
-# list is spelled out again in shrc.sh's export_github_token, which the gh-CLI
-# path uses at every shell start; shrc.sh is sourced by bash too, so sharing
-# one list would need zsh-only word splitting there. The token is cached for
-# the same reason shrc.sh caches the gh-CLI one: it is a revocable, expiring
-# token, and the alternative is logging in to LastPass again in every shell.
+# github — one token under both names that mean "GitHub auth", from either of
+# the two places one lives. `login github gh` takes the gh CLI's own token,
+# which is what a host shell wants and what zshrc.sh logs in at every start;
+# any other instance takes a token stored in LastPass, which is what the
+# sandbox wants, since the gh CLI's configuration never crosses into it. Both
+# are cached: they are revocable, expiring tokens, and the alternative is a
+# `gh` call, or an `lpass login`, in every shell.
 credlogin define github \
-  +GITHUB_TOKEN,GH_TOKEN,HOMEBREW_GITHUB_API_TOKEN,JEKYLL_GITHUB_TOKEN
+  @gh '+GITHUB_TOKEN,GH_TOKEN=$(gh auth token)' \
+  -- \
+  +GITHUB_TOKEN,GH_TOKEN
 
 # claude — replaces the hardcoded key block that used to live in shrc.sh.
 # Fill in ANTHROPIC_FOUNDRY_API_KEY/_BASE_URL for an Azure Foundry-proxied

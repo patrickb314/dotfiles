@@ -41,15 +41,19 @@ Shell configuration is split so Bash and ZSH share as much as possible:
 | File | Installed as | Role |
 | --- | --- | --- |
 | `shprofile.sh` | `~/.shprofile` | login-shell basics: `umask`, history sizes, OS detection (`MACOS`, `LINUX`, `WSL`, `SANDVAULT`), CPU count, Homebrew `shellenv` |
-| `shrc.sh` | `~/.shrc` | interactive shell: `PATH` helpers, aliases, per-command setup, editor choice, GitHub token export |
-| `zprofile.sh` / `zshrc.sh` | `~/.zprofile` / `~/.zshrc` | ZSH completion, prompt, key bindings; `zshrc.sh` sources `~/.zprofile`, `~/.shrc`, and `~/.credlogin` |
+| `shrc.sh` | `~/.shrc` | interactive shell: `PATH` helpers, aliases, per-command setup, editor choice |
+| `zprofile.sh` / `zshrc.sh` | `~/.zprofile` / `~/.zshrc` | ZSH completion, prompt, key bindings; `zshrc.sh` sources `~/.zprofile`, `~/.shrc`, and `~/.credlogin`, then logs in `github gh` |
 | `bash_profile.sh` / `bashrc.sh` | `~/.bash_profile` / `~/.bashrc` | the Bash equivalents |
 
-Two pieces of state get cached under `~/.cache/shell` and refreshed weekly, so
-that a new shell does not pay for a `brew shellenv` and a `gh auth token` every
-time: `homebrew-shellenv.sh` and `github-token`. `setup_github_token` reads the
-latter and exports `GITHUB_TOKEN`, `GH_TOKEN`, `HOMEBREW_GITHUB_API_TOKEN`, and
-`JEKYLL_GITHUB_TOKEN` at every shell start.
+State that a shell would otherwise recompute at every start is cached under
+`~/.cache/shell` and refreshed weekly: `homebrew-shellenv.sh`, and everything
+`credlogin` marks cacheable. `shell_cache_read` and `shell_cache_write` in
+`shprofile.sh` are that cache — a read reports a missing, empty, or expired
+entry as a miss, and a write stores one owner-readable — so the expiry and the
+file modes are decided in one place rather than per credential.
+
+The GitHub token is a `credlogin` login like any other, which makes it ZSH-only:
+a Bash shell exports no GitHub token at all.
 
 `shprofile.sh` sets `SANDVAULT=1` when `$USER` begins with `sandvault`, and sets
 `CODING_AGENT_SHELL=1` when the shell was started by Claude Code or Codex. Both
@@ -114,16 +118,20 @@ Most services are a list of environment variable settings and nothing more, so
 | `NAME?` | the same, but login still succeeds when it is not stored |
 | `A,B,C` | one stored value (under key `A`) exported under all three names |
 | `NAME=value` | a fixed value, exported at every login |
+| `NAME=$(cmd)` | a value produced by running `cmd`, stored nowhere |
 | `-NAME` | never exported, only cleared, for a variable that would conflict |
-| `+NAME` | a stored value that may also be cached on disk |
+| `+NAME` | a fetched value that may also be cached on disk |
 | `@name` | labels the variant it appears in, so `login <service> <name>` selects that shape outright |
 | `--` | separates alternative shapes of the same service |
 
 An unlabelled login uses the first variant whose required values are all stored.
 A variant that requires nothing stored would match every instance, including
 mistyped ones, so `define` rejects it unless it carries an `@name` label, after
-which it is reachable only by that name. `credlogin` is aliased to `noglob
-credlogin` so a `NAME?` entry does not have to be quoted past ZSH globbing.
+which it is reachable only by that name. A command-sourced value hands back the
+same answer whatever instance was asked for, so it falls under that rule too.
+`credlogin` is aliased to `noglob credlogin` so a `NAME?` entry does not have to
+be quoted past ZSH globbing; a `$(cmd)` entry has to be single-quoted, or the
+shell would run it at `define` time.
 
 Login is atomic in the sense that matters: variants resolve in order and nothing
 is exported until one comes out whole, so a failed login leaves the environment
@@ -135,10 +143,10 @@ shape that was active before.
 
 A value whose entry carries a `+` is also written to
 `~/.cache/shell/credlogin/<service>/<instance>` at login, in the same cache as
-`homebrew-shellenv.sh` and `github-token` and on the same weekly expiry. A
-later login reads it back and never calls LastPass at all, which is what keeps
-a fresh shell — or a sandbox account whose LastPass session has lapsed — from
-having to `lpass login` again.
+`homebrew-shellenv.sh` and on the same weekly expiry. A later login reads it
+back and never calls LastPass, or the command the entry names, at all — which
+is what keeps a fresh shell, or a sandbox account whose LastPass session has
+lapsed, from having to `lpass login` again.
 
 Caching is per variable and off by default, because the useful question is per
 credential: mark a token that is short-lived and revocable, and leave anything
@@ -155,13 +163,13 @@ Delete `~/.cache/shell/credlogin` to force every service back to LastPass.
 
 ### Defined services
 
-- **`github`**: one stored token exported as `GITHUB_TOKEN`, `GH_TOKEN`,
-  `HOMEBREW_GITHUB_API_TOKEN`, and `JEKYLL_GITHUB_TOKEN`. That same list appears
-  in `shrc.sh`'s `export_github_token`, which the cached `gh`-CLI path uses at
-  every shell start; `shrc.sh` is sourced by Bash too, so sharing one list would
-  need ZSH-only word splitting there. The token is cached, for the same reason
-  the `gh`-CLI one is: it expires and can be revoked, and the alternative is a
-  LastPass round trip in every shell.
+- **`github`**: one token exported as `GITHUB_TOKEN` and `GH_TOKEN`, from either
+  of the two places one lives. `credlogin login github gh` takes the `gh` CLI's
+  own token, which is what a host shell wants and what `zshrc.sh` logs in at
+  every start; any other instance takes a token stored in LastPass, which is
+  what the sandbox wants, since the `gh` CLI's configuration never crosses into
+  it. Both are cached: they expire and can be revoked, and the alternative is a
+  `gh` call, or a LastPass round trip, in every shell.
 - **`claude`**: three labelled variants. `@foundry` sets
   `ANTHROPIC_FOUNDRY_API_KEY` and `ANTHROPIC_FOUNDRY_BASE_URL` for an Azure
   Foundry-proxied instance; `@api` sets a plain `ANTHROPIC_API_KEY`;

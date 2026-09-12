@@ -37,7 +37,6 @@ NOW_EPOCH="${NOW_EPOCH:-$(date +%s)}"
 
 SHELL_CACHE_DIR="${HOME}/.cache/shell"
 HOMEBREW_SHELLENV_CACHE="${SHELL_CACHE_DIR}/homebrew-shellenv.sh"
-GITHUB_TOKEN_CACHE="${SHELL_CACHE_DIR}/github-token"
 
 ensure_shell_cache_dir() {
   [ -d "${SHELL_CACHE_DIR}" ] || mkdir -p -m 700 "${SHELL_CACHE_DIR}"
@@ -54,6 +53,24 @@ shell_cache_older_than_week() {
   fi
 
   [ "$(( NOW_EPOCH - cache_mtime ))" -ge 604800 ]
+}
+
+# Read a cache entry, treating a missing, empty, or expired file as a miss and
+# reporting it as a non-zero status.
+shell_cache_read() {
+  shell_cache_older_than_week "${1}" && return 1
+  cat "${1}"
+}
+
+# Store a cache entry from stdin, leaving it and the directories above it
+# readable only by their owner: what is cached this way is a credential.
+shell_cache_write() {
+  ensure_shell_cache_dir
+  mkdir -p -m 700 "${1%/*}"
+  (
+    umask 077
+    cat >| "${1}"
+  )
 }
 
 setup_homebrew() {

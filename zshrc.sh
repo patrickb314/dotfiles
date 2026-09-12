@@ -7,6 +7,12 @@ source ~/.shrc
 # load LastPass-backed service logins (ssh, github, claude, ...)
 source ~/.credlogin
 
+# the GitHub token every shell used to set up for itself, now one credlogin
+# instance among the rest: the gh CLI's own token, from the shell cache after
+# the first shell of the week. Silent because a machine without gh, or one
+# whose gh is not logged in, is not an error worth a line at every prompt.
+credlogin login github gh &>/dev/null
+
 # History file
 export HISTFILE=~/.zsh_history
 

@@ -403,15 +403,16 @@ own — `ZOTERO_LOCAL` decides, so with Zotero closed the server has no library.
 
 Semantic search is configured by writing `config.json` rather than by running
 `zotero-mcp setup --semantic-config-only`, which asks its questions
-interactively and so cannot answer itself over a piped shell. The backend is the
-bundled all-MiniLM-L6-v2, which runs locally and needs nothing else started;
-switching to [Ollama](https://ollama.com) is one word at the top of
-`script/sv-after-setup` — set `EMBEDDING_BACKEND` to `ollama`, which picks up
-the `qwen3-embedding:8b` already named there and kept pulled by
-`ollama-models.txt` — followed by `zotero-mcp update-db --force-rebuild` in
-each account, since a model of a different vector width cannot read the
-embeddings already in the database. The index updates itself once a day on a
-background thread at server startup, so no session waits on it.
+interactively and so cannot answer itself over a piped shell. The backend is
+[Ollama](https://ollama.com), embedding with the `qwen3-embedding:8b` that
+`ollama-models.txt` keeps pulled and the main account serves on
+`localhost:11434` for both accounts. Going back to the bundled all-MiniLM-L6-v2,
+which needs nothing started at all, is one word at the top of
+`script/sv-after-setup` — set `EMBEDDING_BACKEND` to `default`. Either
+direction wants `zotero-mcp update-db --force-rebuild` in each account, since a
+model of a different vector width cannot read the embeddings already in the
+database. The index updates itself once a day on a background thread at server
+startup, so no session waits on it.
 
 ## Ollama models
 

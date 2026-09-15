@@ -50,12 +50,13 @@ mcp_add firecrawl firecrawl-mcp
 # Brewfile, since `brew bundle` compares the whole requirement string and would
 # otherwise reinstall the bare package over this one.
 #
-# Semantic search embedding backend. "default" is the bundled all-MiniLM-L6-v2,
-# which runs locally and needs nothing else started. Switching to Ollama is one
-# word — set EMBEDDING_BACKEND to "ollama" — followed by
+# Semantic search embedding backend. "ollama" embeds with the model named
+# below, which `ollama-models.txt` keeps pulled and the main account serves on
+# localhost for both accounts. "default" is the bundled all-MiniLM-L6-v2, which
+# needs nothing started at all. Changing this line in either direction wants
 # `zotero-mcp update-db --force-rebuild` in each account, since a model of a
 # different vector width cannot read the embeddings already in the database.
-EMBEDDING_BACKEND="default"
+EMBEDDING_BACKEND="ollama"
 EMBEDDING_MODEL="qwen3-embedding:8b" # read only when the backend is ollama
 EMBEDDING_BASE_URL="http://localhost:11434"
 

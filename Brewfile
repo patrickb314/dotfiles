@@ -101,9 +101,9 @@ cask "superset"
 # TeX for papers and talks, without the GUI front ends
 cask "mactex-no-gui"
 # Open-source code editor
+cask "zed"
+# Microsoft code editor
 cask "visual-studio-code"
-# The same editor without MS branding, telemetry, or licensing
-cask "vscodium"
 # Video communication and virtual meeting platform
 cask "zoom"
 # Additional lastpass setups

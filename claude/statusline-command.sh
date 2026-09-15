@@ -12,9 +12,13 @@ else
   color="\033[01;32m"
 fi
 
-printf "${color}%s\033[01;34m %s #\033[00m %s" \
+dir=$(echo "$input" | jq -r '.workspace.current_dir')
+branch=$(git -C "$dir" branch --show-current 2>/dev/null)
+
+printf "${color}%s\033[01;34m %s\033[01;33m%s\033[01;34m #\033[00m %s" \
   "$(hostname -s)" \
-  "$(basename "$(echo "$input" | jq -r '.workspace.current_dir')")" \
+  "$(basename "$dir")" \
+  "${branch:+ ($branch)}" \
   "$(echo "$input" | jq -rj --arg e "$(printf '\033')" '
       def paint($code): $e + "[" + $code + "m";
       def gauge($label; $left): "\($label) \(paint(if $left >= 50 then "32" elif $left >= 20 then "33" else "31" end))\($left | round)%\(paint("0"))";

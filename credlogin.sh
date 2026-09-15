@@ -34,6 +34,11 @@ typeset -gA CREDLOGIN_ACTIVE
 typeset -gA CREDLOGIN_SSH_PUBKEY
 typeset -gA CREDLOGIN_SPEC
 
+# zsh expands aliases while parsing, so the alias defined below turns this
+# function's name into `noglob credlogin` on a re-source of an already-loaded
+# shell. Drop it first; the alias is redefined a few lines down either way.
+unalias credlogin 2>/dev/null
+
 credlogin() {
   local verb="$1" service="$2" instance="$3"
   case "${verb}" in

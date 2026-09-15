@@ -100,6 +100,8 @@ cask "superset"
 # cask "docker-desktop"
 # TeX for papers and talks, without the GUI front ends
 cask "mactex-no-gui"
+# Reference library, and the local API `zotero-mcp` reads and writes
+cask "zotero"
 # Open-source code editor
 cask "zed"
 # Microsoft code editor

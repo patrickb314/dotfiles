@@ -7,6 +7,13 @@
 // custom settings, run the `open default settings` command
 // from the command palette or from `Zed` application menu.
 {
+  "vim_mode": true,
+  "agent_servers": {
+    "claude-acp": {
+      "type": "registry"
+    }
+  },
+  "base_keymap": "Zed",
   "ui_font_family": ".SystemUIFont",
   "icon_theme": {
     "mode": "system",
@@ -15,6 +22,7 @@
   },
   "restore_on_startup": "empty_tab",
   "session": {
+    "trust_all_worktrees": true,
     "restore_unsaved_buffers": false
   },
   "enable_language_server": false,
@@ -27,8 +35,8 @@
   },
   "use_system_window_tabs": true,
   "title_bar": {
+    "show_branch_status_icon": true,
     "show_menus": true,
-    "show_branch_icon": true,
   },
   "autosave": "on_focus_change",
   "buffer_font_family": "SF Mono",

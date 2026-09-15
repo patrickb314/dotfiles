@@ -62,6 +62,9 @@ EMBEDDING_BASE_URL="http://localhost:11434"
 
 ZOTERO_CONFIG="${HOME}/.config/zotero-mcp/config.json"
 mkdir -p "${ZOTERO_CONFIG%/*}"
+# The directory holds the search index alongside the config, and `zotero-mcp`
+# itself warns when the other account on this machine can read either.
+chmod 700 "${ZOTERO_CONFIG%/*}"
 [[ -f "${ZOTERO_CONFIG}" ]] || echo '{}' >"${ZOTERO_CONFIG}"
 
 # `zotero-mcp setup --semantic-config-only` asks these as interactive questions,

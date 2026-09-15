@@ -12,5 +12,7 @@ qwen3.6:27b
 gpt-oss:20b
 # Qwen tuned for coding, quantised to NVFP4
 qwen3.6:35b-a3b-coding-nvfp4
+# Zed's edit predictions
+qwen3-coder:30b
 # Embeddings for zotero-mcp semantic search
 qwen3-embedding:8b

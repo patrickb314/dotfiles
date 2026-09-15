@@ -193,6 +193,28 @@ if command -v "brew" >/dev/null; then
   fi
 fi
 
+# Ollama models are downloads rather than files to link, so the list in
+# `ollama-models.txt` is reconciled by asking Ollama what it already holds and
+# pulling the rest. Only this account does it: the server runs here as a
+# `brew services` agent, and the sandbox account reaches it over localhost
+# rather than keeping a second copy of every model.
+if [[ -z "${SANDVAULT}" ]] && command -v "ollama" >/dev/null; then
+  # `brew services start` returns before the server is listening, so the first
+  # `ollama list` gets a few seconds before its failure stops the script.
+  if ! ollama list &>/dev/null && command -v "brew" >/dev/null; then
+    brew services start ollama
+    for _ in $(seq 10); do
+      ollama list &>/dev/null && break
+      sleep 1
+    done
+  fi
+
+  PULLED_MODELS="$(ollama list | awk 'NR > 1 {print $1}')"
+  awk '!/^[[:space:]]*(#|$)/' ollama-models.txt | while read -r MODEL; do
+    grep -qx "${MODEL}" <<<"${PULLED_MODELS}" || ollama pull "${MODEL}"
+  done
+fi
+
 # MCP servers are set up by running commands rather than by installing a
 # configuration file, so the sandbox account runs the same script over a piped
 # shell instead of being handed a copy of anything.

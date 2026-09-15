@@ -56,7 +56,7 @@ mcp_add firecrawl firecrawl-mcp
 # `zotero-mcp update-db --force-rebuild` in each account, since a model of a
 # different vector width cannot read the embeddings already in the database.
 EMBEDDING_BACKEND="default"
-EMBEDDING_MODEL="qwen3-embedding-8b" # read only when the backend is ollama
+EMBEDDING_MODEL="qwen3-embedding:8b" # read only when the backend is ollama
 EMBEDDING_BASE_URL="http://localhost:11434"
 
 ZOTERO_CONFIG="${HOME}/.config/zotero-mcp/config.json"

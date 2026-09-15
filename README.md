@@ -406,11 +406,27 @@ Semantic search is configured by writing `config.json` rather than by running
 interactively and so cannot answer itself over a piped shell. The backend is the
 bundled all-MiniLM-L6-v2, which runs locally and needs nothing else started;
 switching to [Ollama](https://ollama.com) is one word at the top of
-`script/sv-after-setup` — set `EMBEDDING_BACKEND` to `ollama`, which picks up the
-`qwen3-embedding-8b` already named there — followed by `zotero-mcp update-db
---force-rebuild` in each account, since a model of a different vector width
-cannot read the embeddings already in the database. The index updates itself
-once a day on a background thread at server startup, so no session waits on it.
+`script/sv-after-setup` — set `EMBEDDING_BACKEND` to `ollama`, which picks up
+the `qwen3-embedding:8b` already named there and kept pulled by
+`ollama-models.txt` — followed by `zotero-mcp update-db --force-rebuild` in
+each account, since a model of a different vector width cannot read the
+embeddings already in the database. The index updates itself once a day on a
+background thread at server startup, so no session waits on it.
+
+## Ollama models
+
+[Ollama](https://ollama.com) runs as a `brew services` agent in my main account
+and serves models on `localhost:11434`. The SandVault account has no server of
+its own and reaches this one over localhost, so the models are pulled once, by
+the account that serves them.
+
+They are downloads rather than files to link, so `ollama-models.txt` lists them
+one per line, `Brewfile`-style with a comment above each entry, and
+`script/setup` reconciles that list: it starts the service if nothing answers,
+asks Ollama what it already holds, and pulls the rest. Adding a model is a line
+in the file. Removing one is a line out of the file plus an `ollama rm`, since
+nothing here deletes models — tens of gigabytes are too expensive to discard on
+the strength of a diff.
 
 ## Status
 

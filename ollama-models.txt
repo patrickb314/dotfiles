@@ -1,0 +1,16 @@
+# Models to keep pulled and served on localhost:11434.
+#
+# One model per line; blank lines and `#` comments are ignored. `script/setup`
+# pulls anything in here that Ollama does not already hold. Nothing removes
+# models, so dropping a line wants an `ollama rm` to go with it.
+
+# Google's general-purpose local model
+gemma4:31b
+# Qwen for general chat and reasoning
+qwen3.6:27b
+# OpenAI's open-weight model
+gpt-oss:20b
+# Qwen tuned for coding, quantised to NVFP4
+qwen3.6:35b-a3b-coding-nvfp4
+# Embeddings for zotero-mcp semantic search
+qwen3-embedding:8b

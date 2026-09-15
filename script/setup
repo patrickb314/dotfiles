@@ -193,6 +193,14 @@ if command -v "brew" >/dev/null; then
   fi
 fi
 
+# MCP servers are set up by running commands rather than by installing a
+# configuration file, so the sandbox account runs the same script over a piped
+# shell instead of being handed a copy of anything.
+if command -v "uv" >/dev/null && command -v "claude" >/dev/null; then
+  script/sv-after-setup
+  command -v "sv" >/dev/null && sv shell <script/sv-after-setup
+fi
+
 if [[ -n "${LINUX}" ]]; then
   exec script/linux-after-setup
 elif [[ -n "${CI}" && -n "${MACOS}" ]]; then

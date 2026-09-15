@@ -1,0 +1,97 @@
+#!/bin/bash
+# Provision the MCP servers Claude Code should offer in every project.
+#
+# Run by script/setup for the host account, then piped into `sv shell` so the
+# same commands run again inside the SandVault guest account. Each account has
+# to do this for itself: `uv tool install` writes into the invoking user's home,
+# and Claude Code keeps its server list in ~/.claude.json, a file it writes
+# itself and fills with session state, so there is nothing here to copy from one
+# account to the other.
+#
+# Credentials are deliberately absent. Claude Code runs an MCP server as a child
+# process, so each one reads its key out of the environment `credlogin` set up
+# in the shell that started Claude Code; see the `firecrawl` and `zotero`
+# services in credlogin.sh.
+
+set -eo pipefail
+
+# The Brewfile lists these two as well, which is what keeps `brew bundle
+# cleanup` from uninstalling them; installing them here is what gets them into
+# the second account, since a uv tool lands in the invoking user's home.
+# `firecrawl-mcp` needs neither, being an npm package in the shared prefix.
+uv tool install arxiv-mcp-server
+uv tool install "zotero-mcp-server[all]"
+
+# In the sandbox, `claude` on PATH is sandvault's own wrapper, which execs an
+# interactive session rather than passing a subcommand through untouched.
+CLAUDE="${HOMEBREW_PREFIX}/bin/claude"
+[[ -x "${CLAUDE}" ]] || CLAUDE="$(command -v claude)"
+
+# Removing first is what makes this rerunnable: `claude mcp add` refuses a name
+# that already exists, and an edit to a command below should take effect rather
+# than be skipped as already present.
+mcp_add() {
+  local name="$1"
+  shift
+  "${CLAUDE}" mcp remove "${name}" --scope user &>/dev/null || true
+  "${CLAUDE}" mcp add "${name}" --scope user -- "$@"
+}
+
+mcp_add arxiv "${HOME}/.local/bin/arxiv-mcp-server"
+mcp_add firecrawl firecrawl-mcp
+
+# zotero-mcp registers itself instead of going through `mcp_add`, because the
+# server is more than a command line: `zotero-mcp setup` finds its own
+# executable and writes the mcpServers entry from the semantic-search settings
+# in ~/.config/zotero-mcp/config.json, so the entry and the settings cannot
+# drift apart. The `[all]` extra above is what makes the full server available
+# — PDF extraction (pymupdf), semantic search (chromadb, sentence-transformers),
+# and Scite citation data — and the extra has to be spelled the same way in the
+# Brewfile, since `brew bundle` compares the whole requirement string and would
+# otherwise reinstall the bare package over this one.
+#
+# Semantic search embedding backend. "default" is the bundled all-MiniLM-L6-v2,
+# which runs locally and needs nothing else started. Switching to Ollama is one
+# word — set EMBEDDING_BACKEND to "ollama" — followed by
+# `zotero-mcp update-db --force-rebuild` in each account, since a model of a
+# different vector width cannot read the embeddings already in the database.
+EMBEDDING_BACKEND="default"
+EMBEDDING_MODEL="qwen3-embedding-8b" # read only when the backend is ollama
+EMBEDDING_BASE_URL="http://localhost:11434"
+
+ZOTERO_CONFIG="${HOME}/.config/zotero-mcp/config.json"
+mkdir -p "${ZOTERO_CONFIG%/*}"
+[[ -f "${ZOTERO_CONFIG}" ]] || echo '{}' >"${ZOTERO_CONFIG}"
+
+# `zotero-mcp setup --semantic-config-only` asks these as interactive questions,
+# which a piped shell cannot answer, so write the answers instead. The daily
+# auto-update keeps the index current without anyone remembering to rebuild it;
+# the server runs it on a background thread at startup, so it costs a session
+# nothing. Merging rather than replacing preserves the `last_update` stamp the
+# server keeps in the same block.
+jq --arg backend "${EMBEDDING_BACKEND}" \
+  --arg model "${EMBEDDING_MODEL}" \
+  --arg base_url "${EMBEDDING_BASE_URL}" '
+  .semantic_search += {
+    embedding_model: $backend,
+    embedding_config: (
+      if $backend == "default" then {}
+      else {model_name: $model, base_url: $base_url}
+      end
+    ),
+    update_config: (
+      (.semantic_search.update_config // {})
+        + {auto_update: true, update_frequency: "daily"}
+    )
+  }' "${ZOTERO_CONFIG}" >"${ZOTERO_CONFIG}.new"
+mv "${ZOTERO_CONFIG}.new" "${ZOTERO_CONFIG}"
+chmod 600 "${ZOTERO_CONFIG}"
+
+# Left in the local-API mode upstream recommends: Zotero desktop serves
+# localhost:23119, which both accounts can reach, and that mode reads
+# attachments straight off disk rather than pulling them back down over the web
+# API. It also keeps `setup` from writing ZOTERO_API_KEY into ~/.claude.json —
+# credlogin's keys stay in the environment, unread until someone drops the
+# ZOTERO_LOCAL entry from that file to run against the web API instead.
+"${HOME}/.local/bin/zotero-mcp" setup \
+  --skip-semantic-search --config-path "${HOME}/.claude.json"

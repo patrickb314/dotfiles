@@ -182,6 +182,16 @@ Delete `~/.cache/shell/credlogin` to force every service back to LastPass.
 - **`codex`** and **`opencode`**: `OPENAI_API_KEY`/`OPENAI_BASE_URL?` and
   `OPENCODE_API_KEY`/`OPENCODE_BASE_URL?`. The variable names are placeholders
   and still need confirming against the two CLIs.
+- **`firecrawl`**: `FIRECRAWL_API_KEY`, read by both the `firecrawl` CLI and the
+  [`firecrawl` MCP server](#mcp-servers).
+- **`zotero`**: `ZOTERO_API_KEY` and `ZOTERO_LIBRARY_ID`, plus
+  `ZOTERO_LIBRARY_TYPE?` for a group library — the server assumes a personal one
+  when it is unset. The [`zotero` MCP server](#zotero) is set up against the
+  local Zotero API and reaches for these only when switched to the web API; the
+  `zotero-cli` that ships alongside it uses them either way. Both of these are
+  cached for the reason the `claude` keys are: an MCP server reads its key out
+  of the environment of the shell that started Claude Code, so without the cache
+  every agent shell in the sandbox would need its own `lpass login`.
 - **`ssh`**: the one service with real logic instead of a spec. Its notes field
   holds a PEM private key, which `login` feeds to `ssh-add` and `logout` removes
   from the agent by the public half derived with `ssh-keygen -y`. A service can
@@ -338,6 +348,69 @@ into the sandbox home under both names.
 [`claude/settings.json`](claude/settings.json) carries Claude Code's permission
 allowlist and denylist, model choice, and theme. [`AGENTS.md`](AGENTS.md) holds
 the conventions that apply to this repository in particular.
+
+### MCP servers
+
+[`script/sv-after-setup`](script/sv-after-setup) installs the MCP servers Claude
+Code should offer in every project:
+
+| Server | Command | Credential |
+| --- | --- | --- |
+| `arxiv` | `arxiv-mcp-server` | none; the arXiv API is open |
+| `firecrawl` | `firecrawl-mcp` | `credlogin login firecrawl <instance>` |
+| `zotero` | `zotero-mcp` | none in local mode; see below |
+
+It is a list of commands rather than a configuration file because that is what
+each of these tools already knows how to do for itself, and because a server
+needing an index built or a database configured is then one more line instead of
+a new mechanism. `script/setup` runs it for the host account and pipes it into
+`sv shell` to run again inside the sandbox. Each `claude mcp add` is preceded by
+a `claude mcp remove`, so rerunning it picks up an edited command rather than
+failing on a name that already exists.
+
+Both accounts have to run it. `uv tool install` writes into the invoking user's
+home, and each account's Claude Code keeps its own server list in its own
+`~/.claude.json` — a file it writes itself and fills with session state, which is
+also why nothing here is copied into the sandbox the way the shell and Git
+configuration is. Only `firecrawl-mcp` is shared: npm installs it into the
+Homebrew prefix both accounts read.
+
+Only `zotero` is given an `env` block, and only because its own installer writes
+one. Claude Code runs an MCP server as a child process, so each one inherits
+whatever `credlogin` exported into the shell that started Claude Code. A
+`${VAR}` written into an `env` block would be worse than nothing: Claude Code
+passes an unset one through verbatim, handing the server the literal string
+rather than leaving the variable unset.
+
+#### Zotero
+
+`zotero-mcp` is the one server that does not go through `claude mcp add`. It
+ships its own installer, and `zotero-mcp setup` both finds its executable and
+writes the `mcpServers` entry out of the semantic-search settings in
+`~/.config/zotero-mcp/config.json`, so the entry and the settings cannot drift
+apart. The package is installed as `zotero-mcp-server[all]` for the full server:
+PDF extraction, semantic search, and Scite citation data. The `[all]` has to be
+spelled the same way in the `Brewfile`, because `brew bundle` compares the whole
+requirement string and would otherwise reinstall the bare package over it.
+
+It runs against the local API that Zotero desktop serves on `localhost:23119`,
+which is what upstream recommends and what both accounts can reach. That mode
+reads attachments off disk instead of pulling them back down over the web API,
+and it keeps `setup` from writing a key into `~/.claude.json`: the `credlogin
+zotero` keys sit unread in the environment until someone drops `ZOTERO_LOCAL`
+from that entry to run against the web API instead. Nothing falls back on its
+own — `ZOTERO_LOCAL` decides, so with Zotero closed the server has no library.
+
+Semantic search is configured by writing `config.json` rather than by running
+`zotero-mcp setup --semantic-config-only`, which asks its questions
+interactively and so cannot answer itself over a piped shell. The backend is the
+bundled all-MiniLM-L6-v2, which runs locally and needs nothing else started;
+switching to [Ollama](https://ollama.com) is one word at the top of
+`script/sv-after-setup` — set `EMBEDDING_BACKEND` to `ollama`, which picks up the
+`qwen3-embedding-8b` already named there — followed by `zotero-mcp update-db
+--force-rebuild` in each account, since a model of a different vector width
+cannot read the embeddings already in the database. The index updates itself
+once a day on a background thread at server startup, so no session waits on it.
 
 ## Status
 

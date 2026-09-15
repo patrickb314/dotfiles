@@ -675,6 +675,19 @@ credlogin define claude \
 credlogin define codex OPENAI_API_KEY OPENAI_BASE_URL?
 credlogin define opencode OPENCODE_API_KEY OPENCODE_BASE_URL?
 
+# firecrawl/zotero — the credentials the MCP servers in script/sv-after-setup
+# read out of the environment, plus the firecrawl and zotero CLIs, which read
+# the same keys. Claude Code runs an MCP server as a child process, so each one
+# inherits these from the shell that started Claude Code and the MCP
+# configuration itself holds no secrets. zotero-mcp is set up against the local
+# Zotero API, so it only wants these when pointed at the web API instead.
+# Cached for the reason the claude keys are: otherwise every agent shell in the
+# sandbox would need its own lpass login. ZOTERO_LIBRARY_TYPE is optional
+# because the server assumes a personal library when it is unset; a group
+# library is the case that has to say so.
+credlogin define firecrawl +FIRECRAWL_API_KEY
+credlogin define zotero +ZOTERO_API_KEY +ZOTERO_LIBRARY_ID +ZOTERO_LIBRARY_TYPE?
+
 # per-machine or otherwise unshared service definitions
 [[ -r ~/.credlogin.local ]] && source ~/.credlogin.local
 

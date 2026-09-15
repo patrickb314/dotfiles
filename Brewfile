@@ -118,9 +118,13 @@ mas "Xcode", id: 497799835
 # Sandboxing and web-scraping helpers that only ship via npm
 npm "@anthropic-ai/sandbox-runtime"
 npm "firecrawl-cli"
+npm "firecrawl-mcp"
 
-# Sandboxing and MCP helpers that ship via uv.
-uv "zotero-mcp-server"
+# Sandboxing and MCP helpers that ship via uv. script/sv-after-setup installs
+# these too, for the sandbox account; they are listed here so that a
+# `brew bundle cleanup` does not then take them away again.
+uv "arxiv-mcp-server"
+uv "zotero-mcp-server[all]"
 
 # The list below is what Visual Studio Code has installed; `brew bundle`
 # drives a single editor at a time and defaults to `code`.

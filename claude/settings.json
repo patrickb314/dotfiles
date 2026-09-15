@@ -21,12 +21,109 @@
     "deny": [
       "Bash(git push --force)"
     ],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "auto"
   },
-  "bash": {
-    "deniedCommands": [
-      "git push --force",
-      "sudo"
+  "model": "claude-opus-5",
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/cc-status.sh"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/cc-status.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/cc-status.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/cc-status.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/cc-status.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/cc-status.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/cc-status.sh"
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/cc-status.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/cc-status.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/cc-status.sh"
+          }
+        ]
+      }
     ]
   },
   "extraKnownMarketplaces": {
@@ -39,5 +136,17 @@
   },
   "autoUpdatesChannel": "stable",
   "theme": "auto",
-  "model": "claude-opus-5"
+  "bash": {
+    "deniedCommands": [
+      "git push --force",
+      "sudo"
+    ]
+  },
+  "enabledPlugins": {
+    "firecrawl@claude-plugins-official": true
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline-command.sh"
+  }
 }

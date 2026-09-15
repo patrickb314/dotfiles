@@ -72,19 +72,15 @@ fi
 export GOPATH="${HOME}/.gopath"
 add_to_path_end "${GOPATH}/bin"
 
+# Tools installed by `uv tool install`
+add_to_path_end "${HOME}/.local/bin"
+
 # Aliases
 alias mkdir="mkdir -vp"
 alias df="df -H"
-alias rm="rm -iv"
-alias mv="mv -iv"
-alias cp="cp -irv"
 alias du="du -sh"
 alias less="less --ignore-case --raw-control-chars"
 alias rsync="rsync --partial --progress --human-readable --compress"
-alias rg="rg --colors 'match:style:nobold' --colors 'path:style:nobold'"
-alias be="bundle exec"
-alias sha256="shasum -a 256"
-alias sedperl="perl -p -e"
 
 # Command-specific stuff
 if quiet_which brew; then

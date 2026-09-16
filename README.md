@@ -411,8 +411,19 @@ which needs nothing started at all, is one word at the top of
 `script/sv-after-setup` — set `EMBEDDING_BACKEND` to `default`. Either
 direction wants `zotero-mcp update-db --force-rebuild` in each account, since a
 model of a different vector width cannot read the embeddings already in the
-database. The index updates itself once a day on a background thread at server
-startup, so no session waits on it.
+database. A rebuild resets the whole index but refills only the library the
+server is pointed at, so on a database that indexes group libraries it needs
+`--allow-mass-deletion` and it drops every other library on the way through.
+Short of a model change, `zotero-mcp update-db --fulltext` re-indexes whatever
+gained an attachment and leaves the rest alone.
+
+Items are indexed as overlapping passages rather than one vector apiece.
+Upstream indexes an item once, truncated at the model's input limit, which holds
+a title and an abstract but throws away nearly all of an attached paper.
+Passages make the whole paper searchable and let a result quote the passage it
+matched. Forty cover a long paper, and embedding one costs about thirty
+milliseconds against the local model. The index updates itself once a day on a
+background thread at server startup, so no session waits on it.
 
 ## Ollama models
 

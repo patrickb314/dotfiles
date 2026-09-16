@@ -6,7 +6,9 @@
 # to do this for itself: `uv tool install` writes into the invoking user's home,
 # and Claude Code keeps its server list in ~/.claude.json, a file it writes
 # itself and fills with session state, so there is nothing here to copy from one
-# account to the other.
+# account to the other. The semantic search index is the exception: only the
+# main account can build one, so it hands its copy over through the shared
+# workspace.
 #
 # Credentials are deliberately absent. Claude Code runs an MCP server as a child
 # process, so each one reads its key out of the environment `credlogin` set up
@@ -67,15 +69,60 @@ mkdir -p "${ZOTERO_CONFIG%/*}"
 chmod 700 "${ZOTERO_CONFIG%/*}"
 [[ -f "${ZOTERO_CONFIG}" ]] || echo '{}' >"${ZOTERO_CONFIG}"
 
+# The sandbox cannot index for itself. Local-API mode reads attachments
+# straight off disk and the sandbox is refused `~/Zotero`, so an index built in
+# there would cover titles and abstracts and throw away every paper — the very
+# thing passage indexing exists to fix. The main account leaves its index in
+# the shared workspace instead, and the sandbox copies that in along with the
+# sync bookkeeping in `config.json`, so the two accounts search the same
+# passages at the same library version.
+ZOTERO_INDEX="${SHARED_WORKSPACE:-/Users/Shared/sv-${USER}}/zotero-index"
+
+# `cp -c` clones on APFS, so the staged copy and the sandbox's copy of a
+# multi-gigabyte index cost no disk until the next reindex rewrites the
+# original; `-p` keeps the timestamps the `-nt` tests below compare.
+clone_index() {
+  local src="$1" dest="$2" name
+  mkdir -p "${dest}"
+  for name in chroma_db fulltext_cache; do
+    [[ -d "${src}/${name}" ]] || continue
+    rm -rf "${dest:?}/${name}"
+    cp -Rpc "${src}/${name}" "${dest}/${name}"
+  done
+}
+
+# Compared on `chroma.sqlite3` rather than the directory holding it, because
+# the database is rewritten in place and leaves that directory's own timestamp
+# untouched. The staged `config.json` is written last, so its presence is what
+# says the staged index is complete.
+if [[ -n "${SANDVAULT}" && -f "${ZOTERO_INDEX}/config.json" ]] &&
+  [[ "${ZOTERO_INDEX}/chroma_db/chroma.sqlite3" -nt "${ZOTERO_CONFIG%/*}/chroma_db/chroma.sqlite3" ]]; then
+  clone_index "${ZOTERO_INDEX}" "${ZOTERO_CONFIG%/*}"
+  cp -p "${ZOTERO_INDEX}/config.json" "${ZOTERO_CONFIG}"
+fi
+
+AUTO_UPDATE=true
+[[ -z "${SANDVAULT}" ]] || AUTO_UPDATE=false
+
 # `zotero-mcp setup --semantic-config-only` asks these as interactive questions,
 # which a piped shell cannot answer, so write the answers instead. The daily
 # auto-update keeps the index current without anyone remembering to rebuild it;
 # the server runs it on a background thread at startup, so it costs a session
 # nothing. Merging rather than replacing preserves the `last_update` stamp the
-# server keeps in the same block.
+# server keeps in the same block. Only the main account updates: an update run
+# in the sandbox would overwrite the passages copied in above with the
+# metadata-only entries it can reach on its own.
+#
+# Chunking is off upstream, which indexes each item as a single vector truncated
+# at the embedding model's input limit — enough for a title and abstract, but it
+# throws away nearly all of an attached paper. Indexing overlapping passages
+# instead makes the whole paper searchable and lets a hit quote the passage it
+# came from. Forty passages covers a long paper, and embedding one costs about
+# thirty milliseconds against the local model, so the depth is close to free.
 jq --arg backend "${EMBEDDING_BACKEND}" \
   --arg model "${EMBEDDING_MODEL}" \
-  --arg base_url "${EMBEDDING_BASE_URL}" '
+  --arg base_url "${EMBEDDING_BASE_URL}" \
+  --argjson auto_update "${AUTO_UPDATE}" '
   .semantic_search += {
     embedding_model: $backend,
     embedding_config: (
@@ -85,11 +132,22 @@ jq --arg backend "${EMBEDDING_BACKEND}" \
     ),
     update_config: (
       (.semantic_search.update_config // {})
-        + {auto_update: true, update_frequency: "daily"}
-    )
+        + {auto_update: $auto_update, update_frequency: "daily"}
+    ),
+    chunking: {enabled: true, chunk_size: 1500, overlap: 200,
+               max_chunks_per_item: 40}
   }' "${ZOTERO_CONFIG}" >"${ZOTERO_CONFIG}.new"
 mv "${ZOTERO_CONFIG}.new" "${ZOTERO_CONFIG}"
 chmod 600 "${ZOTERO_CONFIG}"
+
+# Hand the finished index to the sandbox. `local_api` is dropped on the way:
+# it holds the key Zotero granted this account for writes, and reading needs no
+# key at all.
+if [[ -z "${SANDVAULT}" ]] && command -v sv &>/dev/null &&
+  [[ "${ZOTERO_CONFIG%/*}/chroma_db/chroma.sqlite3" -nt "${ZOTERO_INDEX}/chroma_db/chroma.sqlite3" ]]; then
+  clone_index "${ZOTERO_CONFIG%/*}" "${ZOTERO_INDEX}"
+  jq 'del(.local_api)' "${ZOTERO_CONFIG}" >"${ZOTERO_INDEX}/config.json"
+fi
 
 # Left in the local-API mode upstream recommends: Zotero desktop serves
 # localhost:23119, which both accounts can reach, and that mode reads

@@ -4,8 +4,12 @@ tap "anomalyco/tap"
 brew "cmake"
 # And its documentation
 brew "cmake-docs"
+# CMake language server, which the Zed `neocmake` extension finds on `PATH`
+brew "neocmakelsp"
 # C source formatting
 brew "clang-format"
+# `clangd`, the C/C++ language server Zed drives
+brew "llvm"
 # Non-make build system for cmake/etc.
 brew "ninja"
 # Collection of portable C++ source libraries
@@ -20,6 +24,8 @@ brew "ack"
 brew "ripgrep"
 # Static analysis and lint tool, for (ba)sh scripts
 brew "shellcheck"
+# Shell script language server, which leans on `shellcheck` for diagnostics
+brew "bash-language-server"
 # Static checker for GitHub Actions workflow files
 brew "actionlint"
 # Clone of cat(1) with syntax highlighting and Git integration
@@ -38,10 +44,15 @@ brew "eza"
 brew "fd"
 # Ruby scripting
 brew "ruby"
+# Ruby language server and linter, both of which Zed drives as language servers
+brew "ruby-lsp"
+brew "rubocop"
 # JavaScript runtime, needed by the npm packages below
 brew "node"
 # Additional python poackage installation
 brew "uv"
+# Python language server
+brew "python-lsp-server"
 # GitHub command-line tool
 brew "gh"
 # Distributed revision control system
@@ -58,6 +69,8 @@ brew "htop"
 brew "hyperfine"
 # Basic spelling tools
 brew "ispell"
+# LaTeX language server; the TeX distribution itself is the `mactex-no-gui` cask
+brew "texlab"
 # XML security library
 brew "libxmlsec1"
 # Mac App Store command-line interface
@@ -86,6 +99,10 @@ brew "somo"
 brew "wget"
 # Linter for YAML files
 brew "yamllint"
+# YAML language server
+brew "yaml-language-server"
+# JSON language server, along with its CSS, HTML, and ESLint siblings
+brew "vscode-langservers-extracted"
 # Find security issues in GitHub Actions setups
 brew "zizmor"
 # Password manager that keeps all passwords secure behind one password

@@ -8,11 +8,6 @@
 // from the command palette or from `Zed` application menu.
 {
   "vim_mode": true,
-  "agent_servers": {
-    "claude-acp": {
-      "type": "registry"
-    }
-  },
   "base_keymap": "Zed",
   "ui_font_family": ".SystemUIFont",
   "icon_theme": {
@@ -25,13 +20,42 @@
     "trust_all_worktrees": true,
     "restore_unsaved_buffers": false
   },
-  "enable_language_server": false,
   "edit_predictions": {
     "ollama": {
-      "model": "qwen3-coder:30b"
+      "api_url": "http://localhost:11434",
+      "model": "qwen3-coder:30b",
+      "prompt_format": "qwen",
+      "max_output_tokens": 512
     },
     "provider": "ollama",
     "disabled_globs": [],
+  },
+  "language_models": {
+    "anthropic": {
+      "provider": "anthropic_subscription"
+    },
+    "ollama": {
+      "api_url": "http://localhost:11434",
+      "auto_discover": false,
+      "available_models": [
+        {
+          "name": "qwen3.6:27b",
+          "display_name": "Qwen3.6 27B",
+          "max_tokens": 32768,
+          "supports_tools": true,
+          "supports_thinking": true,
+          "supports_images": true
+        },
+        {
+          "name": "qwen3-coder:30b",
+          "display_name": "Qwen3 Coder 30B",
+          "max_tokens": 32768,
+          "supports_tools": true,
+          "supports_thinking": false,
+          "supports_images": false
+        }
+      ]
+    }
   },
   "use_system_window_tabs": true,
   "title_bar": {
@@ -44,12 +68,60 @@
   "buffer_font_size": 12,
   "current_line_highlight": "gutter",
   "cursor_blink": false,
+  "auto_install_extensions": {
+    "catppuccin-icons": true,
+    "html": true,
+    "latex": true,
+    "macos-classic": true,
+    "make": true,
+    "neocmake": true,
+    "ruby": true,
+    "toml": true,
+  },
+  "lsp": {
+    "bash-language-server": {
+      "binary": {
+        "path": "/opt/homebrew/bin/bash-language-server",
+        "arguments": ["start"],
+      },
+    },
+    "clangd": {
+      "binary": {
+        "path": "/opt/homebrew/opt/llvm/bin/clangd",
+      },
+    },
+    "json-language-server": {
+      "binary": {
+        "path": "/opt/homebrew/bin/vscode-json-language-server",
+        "arguments": ["--stdio"],
+      },
+    },
+    "pylsp": {
+      "binary": {
+        "path": "/opt/homebrew/bin/pylsp",
+      },
+    },
+    "texlab": {
+      "binary": {
+        "path": "/opt/homebrew/bin/texlab",
+      },
+    },
+    "yaml-language-server": {
+      "binary": {
+        "path": "/opt/homebrew/bin/yaml-language-server",
+        "arguments": ["--stdio"],
+      },
+    },
+  },
   "languages": {
     "Shell Script": {
       "tab_size": 2,
     },
+    "Python": {
+      "language_servers": ["pylsp"],
+    },
     "Ruby": {
-      // "language_servers": ["ruby-lsp", "rubocop", "!solargraph", "..."]
+      "language_servers": ["ruby-lsp", "rubocop"],
     },
   },
   "preferred_line_length": 118,

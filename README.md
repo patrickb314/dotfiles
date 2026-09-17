@@ -425,6 +425,35 @@ matched. Forty cover a long paper, and embedding one costs about thirty
 milliseconds against the local model. The index updates itself once a day on a
 background thread at server startup, so no session waits on it.
 
+### Language servers
+
+Claude Code reaches language servers through a plugin rather than an MCP server.
+[`claude/marketplace`](claude/marketplace) is a marketplace holding one plugin,
+whose [`.lsp.json`](claude/marketplace/lsp/.lsp.json) maps file extensions to
+the servers the `Brewfile` installs:
+
+| Extensions | Server |
+| --- | --- |
+| `.c`, `.h`, `.cc`, `.cpp`, `.cxx`, `.hh`, `.hpp`, `.hxx` | `clangd`, named by full path because `llvm` is keg-only |
+| `.py` | `pylsp` |
+| `.sh`, `.bash` | `bash-language-server` |
+| `.tex`, `.bib` | `texlab` |
+| `.rb` | `ruby-lsp` |
+| `.cmake` | `neocmakelsp` |
+| `.yaml`, `.yml` | `yaml-language-server` |
+| `.json` | `vscode-json-language-server` |
+
+Zed drives the same binaries, which `zed-settings.json` names by path, so the
+editor and the agent agree on what a symbol means. A plugin adds nothing to a
+prompt: the servers run out of process, and Claude Code pays for a definition or
+a diagnostic only where it asks for one.
+
+`claude/settings.json` declares the marketplace as `~/.claude/marketplace`, the
+copy `script/setup` installs, since that is the one path both accounts have.
+Enabling a plugin there is enough on a machine that already holds it, so
+`script/sv-after-setup` installs it only where `claude plugin list` does not
+already show it, and a rerun leaves the settings file alone.
+
 ## Ollama models
 
 [Ollama](https://ollama.com) runs as a `brew services` agent in my main account

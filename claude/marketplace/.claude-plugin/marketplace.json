@@ -1,0 +1,14 @@
+{
+  "name": "dotfiles",
+  "owner": {
+    "name": "Patrick G. Bridges"
+  },
+  "description": "Plugins carried by this dotfiles checkout",
+  "plugins": [
+    {
+      "name": "lsp",
+      "source": "./lsp",
+      "description": "Hands Claude Code the language servers the Brewfile installs"
+    }
+  ]
+}

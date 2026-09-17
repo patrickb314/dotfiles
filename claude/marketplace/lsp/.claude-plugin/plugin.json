@@ -1,0 +1,9 @@
+{
+  "name": "lsp",
+  "description": "Language server access for Claude Code, over the servers the Brewfile installs",
+  "version": "1.0.0",
+  "author": {
+    "name": "Patrick G. Bridges"
+  },
+  "keywords": ["lsp", "diagnostics"]
+}

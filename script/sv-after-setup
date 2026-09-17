@@ -157,3 +157,14 @@ fi
 # ZOTERO_LOCAL entry from that file to run against the web API instead.
 "${HOME}/.local/bin/zotero-mcp" setup \
   --skip-semantic-search --config-path "${HOME}/.claude.json"
+
+# Language servers, offered to Claude Code the way an editor gets them: an LSP
+# plugin whose `.lsp.json` names the same Homebrew binaries the Zed settings
+# point at, so the editor and the agent drive one set of servers rather than
+# each downloading its own. `claude/settings.json` declares the marketplace as
+# `~/.claude/marketplace`, the copy `script/setup` installs, which is a path
+# both accounts have. Only the install is per-account state, and skipping it
+# when it is already done leaves the settings file untouched on a rerun.
+if ! "${CLAUDE}" plugin list 2>/dev/null | grep -q "lsp@dotfiles"; then
+  "${CLAUDE}" plugin install lsp@dotfiles --scope user --yes
+fi

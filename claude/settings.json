@@ -126,11 +126,25 @@
       }
     ]
   },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline-command.sh"
+  },
+  "enabledPlugins": {
+    "firecrawl@claude-plugins-official": true,
+    "lsp@dotfiles": true
+  },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
       "source": {
         "source": "github",
         "repo": "anthropics/skills"
+      }
+    },
+    "dotfiles": {
+      "source": {
+        "source": "directory",
+        "path": "~/.claude/marketplace"
       }
     }
   },
@@ -141,12 +155,5 @@
       "git push --force",
       "sudo"
     ]
-  },
-  "enabledPlugins": {
-    "firecrawl@claude-plugins-official": true
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "~/.claude/statusline-command.sh"
   }
 }

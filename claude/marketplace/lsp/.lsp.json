@@ -1,0 +1,64 @@
+{
+  "clangd": {
+    "command": "/opt/homebrew/opt/llvm/bin/clangd",
+    "extensionToLanguage": {
+      ".c": "c",
+      ".h": "c",
+      ".cc": "cpp",
+      ".cpp": "cpp",
+      ".cxx": "cpp",
+      ".hh": "cpp",
+      ".hpp": "cpp",
+      ".hxx": "cpp"
+    }
+  },
+  "pylsp": {
+    "command": "pylsp",
+    "extensionToLanguage": {
+      ".py": "python"
+    }
+  },
+  "bash-language-server": {
+    "command": "bash-language-server",
+    "args": ["start"],
+    "extensionToLanguage": {
+      ".bash": "shellscript",
+      ".sh": "shellscript"
+    }
+  },
+  "texlab": {
+    "command": "texlab",
+    "extensionToLanguage": {
+      ".bib": "bibtex",
+      ".tex": "latex"
+    }
+  },
+  "ruby-lsp": {
+    "command": "ruby-lsp",
+    "extensionToLanguage": {
+      ".rb": "ruby"
+    }
+  },
+  "neocmakelsp": {
+    "command": "neocmakelsp",
+    "args": ["stdio"],
+    "extensionToLanguage": {
+      ".cmake": "cmake"
+    }
+  },
+  "yaml-language-server": {
+    "command": "yaml-language-server",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".yaml": "yaml",
+      ".yml": "yaml"
+    }
+  },
+  "json-language-server": {
+    "command": "vscode-json-language-server",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".json": "json"
+    }
+  }
+}

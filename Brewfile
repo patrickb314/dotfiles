@@ -125,6 +125,8 @@ cask "zed"
 cask "visual-studio-code"
 # Video communication and virtual meeting platform
 cask "zoom"
+# Brainstorming tool
+cask "obsidian"
 # Additional lastpass setups
 gem "lastpass-ssh"
 # Oft-used Mac apps

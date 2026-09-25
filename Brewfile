@@ -69,6 +69,10 @@ brew "htop"
 brew "hyperfine"
 # Basic spelling tools
 brew "ispell"
+# Markdown language server geared to wiki-style linked note vaults
+brew "markdown-oxide"
+# Markdown language server Claude Code drives for ordinary documents
+brew "marksman"
 # LaTeX language server; the TeX distribution itself is the `mactex-no-gui` cask
 brew "texlab"
 # XML security library

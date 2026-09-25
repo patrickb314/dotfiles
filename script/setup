@@ -52,7 +52,7 @@ for DOTFILE in *; do
 
   # Don't try to install some unneeded paths
   case "${DOTFILE}" in
-    bin/|bundle/|claude/|codex/|script/|tmp/|*.txt|*.md)
+    bin/|bundle/|claude/|codex/|script/|test/|tmp/|*.txt|*.md)
       continue
       ;;
   esac

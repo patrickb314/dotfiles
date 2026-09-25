@@ -1,0 +1,61 @@
+#!/bin/bash
+# Run the dotfiles regression tests.
+#
+#   test/run                 every test file
+#   test/run credlogin shrc  only the files whose names match an argument
+#   test/run -v              name every assertion, not only the failures
+#
+# Each file runs in its own process under the shell its name ends in, so one
+# test file's aliases, functions, and PATH cannot reach the next.
+
+set -uo pipefail
+
+cd "$(dirname "$0")/.." || exit 1
+DOTFILES="$(pwd -P)"
+export DOTFILES
+
+if [[ "${1-}" = "-v" ]]; then
+  export DOTFILES_TEST_VERBOSE=1
+  shift
+fi
+
+files=()
+for file in test/*_test.sh test/*_test.zsh; do
+  [[ -f "${file}" ]] || continue
+  if [[ $# -gt 0 ]]; then
+    for pattern in "$@"; do
+      [[ "${file}" = *"${pattern}"* ]] && files+=("${file}") && break
+    done
+  else
+    files+=("${file}")
+  fi
+done
+
+if [[ ${#files[@]} -eq 0 ]]; then
+  echo "test/run: no test files matched" >&2
+  exit 1
+fi
+
+failed=0
+for file in "${files[@]}"; do
+  echo "${file##*/}"
+  case "${file}" in
+    *.zsh)
+      # credlogin and the ZSH startup files can only be tested by the shell
+      # that reads them; say so rather than reporting a pass.
+      if ! command -v zsh >/dev/null; then
+        echo "  skip (zsh is not installed)"
+        continue
+      fi
+      zsh "${file}"
+      ;;
+    *) bash "${file}" ;;
+  esac || failed=$((failed + 1))
+done
+
+if [[ "${failed}" -gt 0 ]]; then
+  echo "${failed} of ${#files[@]} test files FAILED" >&2
+  exit 1
+fi
+
+echo "${#files[@]} test files passed"

@@ -20,6 +20,10 @@ jobs:
     - name: Validate syntax
       run: bash -n *.sh
 
+    - name: Run the regression tests
+      run: test/run
+      if: matrix.os != 'windows-latest'
+
     - name: Test script/setup
       run: bash script/setup
       env:

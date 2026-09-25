@@ -16,8 +16,8 @@ this directory into the home directory and needs no arguments.
 Each top-level file and directory is symlinked to `~/.<name>`, with a trailing
 `.sh` stripped: `shrc.sh` becomes `~/.shrc`, `gitconfig` becomes `~/.gitconfig`,
 and `git-hooks/` becomes `~/.git-hooks/`. The `bin`,
-`bundle`, `claude`, `codex`, `script`, and `tmp` directories, along with `*.md`
-and `*.txt`, are skipped by that loop and handled separately:
+`bundle`, `claude`, `codex`, `script`, `test`, and `tmp` directories, along with
+`*.md` and `*.txt`, are skipped by that loop and handled separately:
 
 - `claude/` and `codex/` are linked file by file into `~/.claude/` and `~/.codex/`.
 - `AGENTS-GLOBAL.md` is linked to both `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`,
@@ -467,6 +467,22 @@ asks Ollama what it already holds, and pulls the rest. Adding a model is a line
 in the file. Removing one is a line out of the file plus an `ollama rm`, since
 nothing here deletes models — tens of gigabytes are too expensive to discard on
 the strength of a diff.
+
+## Tests
+
+[`test/`](test) holds a regression suite for the shell configuration: what a
+login shell works out about the machine, what ends up on `PATH`, which aliases
+and editor a shell settles on, how `credlogin` resolves a service, and where
+`script/setup` puts each file. Run it with `test/run`, or `test/run credlogin`
+for one file's worth. GitHub Actions runs it on Linux and macOS.
+
+It needs nothing the [`Brewfile`](Brewfile) does not already install, and it
+reaches no network and no LastPass account: the `credlogin` tests pin `PATH` to
+one with no `lpass` on it and assert as much before anything else. Each test
+file runs against a throwaway home directory laid out the way `script/setup`
+lays out the real one, so what is under test is the installed startup chain
+rather than a rearrangement of it. [`test/README.md`](test/README.md) documents
+the harness.
 
 ## Status
 

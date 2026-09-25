@@ -224,6 +224,8 @@ The two accounts meet at `/Users/Shared/sv-<user>`, which both can write:
   projects/      repositories cloned in by sv-clone
   assignments/   sandvault's own bookkeeping
   config/        SSH config fragment for the sandbox account
+  Zotero/        the Zotero library, read by both accounts
+  zotero-index/  the semantic search index the main account stages
 ```
 
 ### How the dotfiles get in
@@ -399,6 +401,24 @@ and it keeps `setup` from writing a key into `~/.claude.json`: the `credlogin
 zotero` keys sit unread in the environment until someone drops `ZOTERO_LOCAL`
 from that entry to run against the web API instead. Nothing falls back on its
 own — `ZOTERO_LOCAL` decides, so with Zotero closed the server has no library.
+
+The library itself sits at `/Users/Shared/sv-<user>/Zotero` rather than
+`~/Zotero`, so that an agent in the sandbox can open the paper attached to an
+item and not only read its metadata. The sandbox profile denies the real home
+directory outright, so a PDF under it is unreachable whatever the database
+says. `script/sv-after-setup` moves the directory across on the first run that
+finds Zotero closed, which is a rename rather than a copy because the two paths
+share an APFS volume, and leaves `~/Zotero` behind as a symlink for Zotero
+desktop and its plugins. `config.json` then names the moved `zotero.sqlite`
+outright: `zotero-mcp` otherwise finds the library by reading the data
+directory out of a Zotero profile under `~/Library`, which the sandbox cannot
+see. That one setting covers the attachments as well, since `storage/` is
+resolved beside the database.
+
+The cost of the move is that the sandbox account can write the library and not
+only read it: `sv build` grants that account full access to everything under
+the shared workspace, and there is no carving an exception out of it. Zotero
+syncs, so the recourse if an agent damages the library is the server copy.
 
 Semantic search is configured by writing `config.json` rather than by running
 `zotero-mcp setup --semantic-config-only`, which asks its questions

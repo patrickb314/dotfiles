@@ -6,9 +6,9 @@
 # to do this for itself: `uv tool install` writes into the invoking user's home,
 # and Claude Code keeps its server list in ~/.claude.json, a file it writes
 # itself and fills with session state, so there is nothing here to copy from one
-# account to the other. The semantic search index is the exception: only the
-# main account can build one, so it hands its copy over through the shared
-# workspace.
+# account to the other. The Zotero library and its semantic search index are
+# the exceptions: the main account puts both in the shared workspace, where the
+# sandbox account reads the one and takes a copy of the other.
 #
 # Credentials are deliberately absent. Claude Code runs an MCP server as a child
 # process, so each one reads its key out of the environment `credlogin` set up
@@ -69,14 +69,51 @@ mkdir -p "${ZOTERO_CONFIG%/*}"
 chmod 700 "${ZOTERO_CONFIG%/*}"
 [[ -f "${ZOTERO_CONFIG}" ]] || echo '{}' >"${ZOTERO_CONFIG}"
 
-# The sandbox cannot index for itself. Local-API mode reads attachments
-# straight off disk and the sandbox is refused `~/Zotero`, so an index built in
-# there would cover titles and abstracts and throw away every paper — the very
-# thing passage indexing exists to fix. The main account leaves its index in
-# the shared workspace instead, and the sandbox copies that in along with the
+# The library itself lives in the shared workspace rather than in `~/Zotero`,
+# so that an agent in the sandbox can open the papers attached to an item. The
+# sandbox profile denies `/Users/${USER}` outright, which no amount of pointing
+# `zotero-mcp` at the right database can work around; under the shared
+# workspace the PDFs are ordinary files both accounts can read. `~/Zotero` is
+# left behind as a symlink, which keeps Zotero desktop and its plugins on the
+# path they already recorded and saves editing a `prefs.js` that Zotero
+# rewrites for itself on every exit.
+#
+# Moving is a rename, both paths being on the same APFS volume, but Zotero
+# holds `zotero.sqlite` open while it runs, so a running copy is left where it
+# is and a later run picks the move up.
+SHARED="${SHARED_WORKSPACE:-/Users/Shared/sv-${USER}}"
+ZOTERO_DATA_DIR="${SHARED}/Zotero"
+
+if [[ -z "${SANDVAULT}" ]] && command -v sv &>/dev/null &&
+  [[ -d "${HOME}/Zotero" && ! -L "${HOME}/Zotero" ]]; then
+  if pgrep -f "Zotero.app/Contents/MacOS/zotero" &>/dev/null; then
+    echo "Quit Zotero and rerun to move its library to ${ZOTERO_DATA_DIR}" >&2
+  elif [[ -e "${ZOTERO_DATA_DIR}" ]]; then
+    echo "${ZOTERO_DATA_DIR} exists; leaving ${HOME}/Zotero where it is" >&2
+  else
+    mkdir -p "${SHARED}"
+    mv "${HOME}/Zotero" "${ZOTERO_DATA_DIR}"
+    ln -s "${ZOTERO_DATA_DIR}" "${HOME}/Zotero"
+  fi
+fi
+
+# Left to itself `zotero-mcp` finds the database by reading the data directory
+# out of Zotero's own profile, which only the main account can do — the sandbox
+# cannot see `~/Library`. Naming the moved database outright is what lets the
+# server in either account open the same library, and with it the same
+# attachments, since `storage/` is resolved beside the database. The name is
+# written only once the file is really there, so that a library still waiting
+# on a Zotero quit is found the old way rather than not at all.
+ZOTERO_DB="${ZOTERO_DATA_DIR}/zotero.sqlite"
+[[ -f "${ZOTERO_DB}" ]] || ZOTERO_DB=""
+
+# The index is still built once and copied rather than built in each account:
+# embedding every passage in the library a second time would cost minutes of
+# GPU work for a database identical to the first. The main account leaves its
+# index in the shared workspace, and the sandbox copies that in along with the
 # sync bookkeeping in `config.json`, so the two accounts search the same
 # passages at the same library version.
-ZOTERO_INDEX="${SHARED_WORKSPACE:-/Users/Shared/sv-${USER}}/zotero-index"
+ZOTERO_INDEX="${SHARED}/zotero-index"
 
 # `cp -c` clones on APFS, so the staged copy and the sandbox's copy of a
 # multi-gigabyte index cost no disk until the next reindex rewrites the
@@ -109,9 +146,9 @@ AUTO_UPDATE=true
 # auto-update keeps the index current without anyone remembering to rebuild it;
 # the server runs it on a background thread at startup, so it costs a session
 # nothing. Merging rather than replacing preserves the `last_update` stamp the
-# server keeps in the same block. Only the main account updates: an update run
-# in the sandbox would overwrite the passages copied in above with the
-# metadata-only entries it can reach on its own.
+# server keeps in the same block. Only the main account updates, so a newly
+# added paper is embedded once rather than in both accounts; the sandbox takes
+# the finished index on its next setup run.
 #
 # Chunking is off upstream, which indexes each item as a single vector truncated
 # at the embedding model's input limit — enough for a title and abstract, but it
@@ -122,8 +159,10 @@ AUTO_UPDATE=true
 jq --arg backend "${EMBEDDING_BACKEND}" \
   --arg model "${EMBEDDING_MODEL}" \
   --arg base_url "${EMBEDDING_BASE_URL}" \
+  --arg db_path "${ZOTERO_DB}" \
   --argjson auto_update "${AUTO_UPDATE}" '
-  .semantic_search += {
+  (if $db_path == "" then . else .zotero_db_path = $db_path end)
+  | .semantic_search += {
     embedding_model: $backend,
     embedding_config: (
       if $backend == "default" then {}

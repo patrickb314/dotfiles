@@ -127,10 +127,6 @@ if [ -n "${TERMINALAPP}" ]; then
     printf '\e]7;%s\a' "${terminal_app_pwd}"
   }
 fi
-[ -z "${CODING_AGENT_SHELL}" ] && [ -s ~/.lastpwd ] &&
-  [ "$PWD" = "$HOME" ] &&
-  [ "$(< ~/.lastpwd)" != "/" ] &&
-  builtin cd "$(< ~/.lastpwd)" 2>/dev/null
 [ -n "${TERMINALAPP}" ] && set_terminal_app_pwd
 
 SHPROFILE_LOADED=1

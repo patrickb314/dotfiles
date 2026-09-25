@@ -208,12 +208,11 @@ elif quiet_which code; then
 fi
 
 
-# Save directory changes
+# Document directory changes for the terminal
 cd() {
   builtin cd "$@" || return
   [[ -n "${TERMINALAPP}" ]] && set_terminal_app_pwd
-  [[ -z "${CODING_AGENT_SHELL}" && "$PWD" != "/" ]] && pwd >"${HOME}/.lastpwd"
-  ls
+  return 0
 }
 
 # Use ruby-prof to generate a call stack

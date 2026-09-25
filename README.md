@@ -55,11 +55,10 @@ file modes are decided in one place rather than per credential.
 The GitHub token is a `credlogin` login like any other, which makes it ZSH-only:
 a Bash shell exports no GitHub token at all.
 
-`shprofile.sh` sets `SANDVAULT=1` when `$USER` begins with `sandvault`, and sets
-`CODING_AGENT_SHELL=1` when the shell was started by Claude Code or Codex. Both
-change behavior downstream: the sandbox prompt is yellow instead of green, and
-an agent shell skips the "return to last directory" trick that would otherwise
-make `cd` state leak between sessions.
+`shprofile.sh` sets `SANDVAULT=1` when `$USER` begins with `sandvault`, which
+turns the sandbox prompt yellow instead of green. It also exports
+`CODING_AGENT_SHELL=1` when the shell was started by Claude Code or Codex, as a
+marker for anything that needs to know it is not talking to a person.
 
 ## credlogin
 

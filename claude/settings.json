@@ -23,6 +23,15 @@
     ],
     "defaultMode": "auto"
   },
+  "bash": {
+    "deniedCommands": [
+      "git push --force",
+      "sudo"
+    ]
+  },
+  "env": {
+    "ENABLE_LSP_TOOL": "1"
+  },
   "model": "claude-opus-5",
   "hooks": {
     "Notification": [
@@ -149,11 +158,5 @@
     }
   },
   "autoUpdatesChannel": "stable",
-  "theme": "auto",
-  "bash": {
-    "deniedCommands": [
-      "git push --force",
-      "sudo"
-    ]
-  }
+  "theme": "auto"
 }

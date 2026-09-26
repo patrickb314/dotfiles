@@ -27,8 +27,15 @@ trigger, amortize, saturate, offload, overlap, scale, turn over*
 
 *exercise* has a specific technical sense — a benchmark exercises a
 communication pattern. *expose* likewise — a benchmark exposes a performance
-difference. Both are used constantly and should not be swapped for *test* or
-*show*.
+difference. Neither should be swapped for *test* or *show*. Both belong to
+Bridges' own first-author register; the student-led papers reach for them less,
+so do not force them into every draft.
+
+The verbs that carry the measurement papers across the whole group are narrower:
+*characterize*, *quantify*, *assess*, *predict*, *model*, *evaluate*,
+*reproduce*, *replicate*, *capture*, *collect*, *annotate*, *bin*, *sample*.
+When the paper's object is a measurement rather than a system, these are the
+ones to use.
 
 **Nouns that frame the analysis:**
 
@@ -49,24 +56,37 @@ modest*. Adjectives are load-bearing technical qualifiers here, not color.
 
 ## Transitions
 
-The inventory is small and every item does work.
+The inventory is small and every item does work. Counts below are from the
+eight-paper 2020–2025 expansion, which is large enough to rank them.
 
-| Transition | Use |
-| --- | --- |
-| `Unfortunately,` | The gap. The single most characteristic transition in this voice. |
-| `However,` | Same job as *Unfortunately* with less weight; also for mid-paragraph caveats. |
-| `In contrast,` | Direct comparison between two named approaches. |
-| `Specifically,` | Narrowing from a general claim to the precise one. Very frequent. |
-| `In particular,` | Picking out the most important member of a set just introduced. |
-| `Note that` / `Note, however,` | Flagging the inconvenient fact the reader must carry forward. |
-| `As a result,` | Consequence, usually of a constraint just stated. |
-| `Similarly,` | Second instance of a pattern; also links future-work items. |
-| `Because of this,` | Design rationale. |
-| `First, … Second, … Third, … Finally,` | Ordinal structure in design decisions and future work. |
+| Transition | Use | Frequency |
+| --- | --- | --- |
+| `However,` | The default gap pivot, and the default mid-paragraph caveat. | Dominant — roughly one every 200 words of body text |
+| `Finally,` | Last item of an ordinal sequence; also the last clause of a roadmap paragraph. | Common |
+| `Similarly,` | Second instance of a pattern; also links future-work items. | Common |
+| `In addition,` | Adding a parallel fact or a section the roadmap has not covered. | Common |
+| `As a result,` | Consequence, usually of a constraint just stated. | Common |
+| `Specifically,` | Narrowing from a general claim to the precise one. | Moderate |
+| `In contrast,` | Direct comparison between two named approaches. | Moderate |
+| `In particular,` | Picking out the most important member of a set just introduced. | Moderate |
+| `Note that` / `Note, however,` | Flagging the inconvenient fact the reader must carry forward. | Moderate |
+| `Therefore,` | Conclusion drawn from the preceding two or three sentences. | Moderate |
+| `Unfortunately,` | The gap, when the gap is genuinely unfortunate. | Sparing — at most once or twice per paper |
+| `Overall,` | Summarizing a set of results, or introducing the contribution list after a goal sentence. Never a closer. | Sparing |
+| `Additionally,` / `Furthermore,` / `Moreover,` | Heavier alternates for `In addition,`. Use at most one per section. | Sparing |
+| `Given this,` / `Nonetheless,` / `Because of this,` | Design rationale and concession. | Sparing |
+| `Currently,` | Stating the gap as a plain limitation with no pivot word. | Sparing |
+| `First, … Second, … Third, … Finally,` | Ordinal structure in design decisions, heuristics, and future work. | Structural |
+
+The ranking carries as much information as the list itself. A draft that opens
+three consecutive paragraphs with `Furthermore,` or reaches for
+`Unfortunately,` at every gap has the right vocabulary and the wrong
+distribution, and a reader who knows these papers will notice the distribution
+as readily as they would notice a foreign word.
 
 Do not invent transitions outside this set. `That said,`, `Moving forward,`,
-`With that in mind,`, `Importantly,`, `It is worth noting that` do not appear in
-the corpus and read as someone else's prose.
+`With that in mind,`, `Importantly,`, and `It is worth noting that` do not
+appear anywhere in the corpus and read as someone else's prose.
 
 ---
 
@@ -145,8 +165,16 @@ These appear constantly and are precise, not weaselly:
   "approximately 3800 source lines of code", "roughly 24M mesh points".
 - **Parenthesize the derivation** when a percentage needs one: "a parallel
   efficiency of only 21% (3.5x speedup when moving from 4 to 64 GPUS)".
-- Never write *significantly* to mean *a lot*. Either give the number, or
-  reserve *significantly* for its statistical sense.
+- Prefer the number to *significantly*. The student-led papers do use
+  *significantly* as a plain intensifier ("intra-node communication
+  significantly more costly than inter-node"), so it is not disqualifying, but
+  every instance where a measurement exists should be replaced by that
+  measurement. Reserve the word for its statistical sense wherever the paper
+  also reports p-values or confidence intervals, so the two senses do not
+  collide in the same section.
+- Write numeric ranges with an en dash and no spaces, and keep the unit on both
+  ends only when it changes: `1.5×–4.6×`, `0.984–0.998`, `4–32 nodes`,
+  `12–39%`.
 
 ---
 
@@ -195,6 +223,52 @@ separated by a paragraph break.
 > On Tuolumne, stream-triggered send and ready send outperform Cray MPICH on the
 > large problem by 17-32%, but underperform Cray MPICH on the small problem by
 > 22-34%.
+
+**The orthogonality sentence.** For related work that is neither competing nor
+superseded, say which axis separates it rather than which is better.
+
+> Our work is orthogonal to these approaches, as it targets MPI communication
+> rather than MPI-IO and can be utilized to represent and diagnose entire
+> communication patterns rather than individual call sites […]
+
+> Vernier by way of contrast provides a combination of features that these tools
+> have in addition to providing a flexible backend to perform online analysis
+> and binning of data in customizable ways.
+
+> Our work proposes a method to close this gap by collecting communication
+> patterns directly from applications in a format that is compact, and also
+> enables the communication pattern to be re-generated in a representative
+> manner.
+
+**The concessive limitation clause.** The limitation rides inside the claim
+sentence as a leading `While…` clause, so the reader never meets the claim
+unqualified. This is how the conclusions hedge without sounding evasive.
+
+> **While additional investigation into more applications and potential
+> aggregation strategies is necessary,** the data we presented in this paper
+> suggests that there may be a meaningful opportunity in scientific HPC
+> applications to achieve better overall communication performance by using
+> early-bird communication.
+
+> **While these features are not present in every combination of system,
+> application, and problem-size or with perfect consistency,** each application
+> evaluated frequently exhibited at least one of these two features.
+
+**The informal definition.** For a term that resists a crisp definition, say so
+in the sentence rather than pretending precision. This is the softer sibling of
+the scoped definition in SKILL.md, used for concepts rather than for the paper's
+own contributions.
+
+> Irregular communication is, **informally,** communication where the set of
+> processes sending and receiving messages and/or the volume of data transferred
+> are difficult to predict, often because these are dependent on the problem
+> being solved and/or the data being communicated. Dynamic communication
+> patterns are those in which processes communicating change over time.
+
+Note the second sentence: once the hard term is defined informally, the adjacent
+term gets an ordinary definition, and both are followed by a list of concrete
+instances ("adaptive meshing algorithms, mapping particles to mesh cells,
+re-meshing, tree sweeps in fast multipole methods […]").
 
 **The consequence chain.** Short sentences in sequence, each the consequence of
 the last, used to build to the gap.
@@ -272,8 +346,14 @@ register; a sentence earns its place by carrying a mechanism or a number.
 when the code is named Fuji drops information the reader needs and reads as
 hedging.
 
-**Stock closers:** In conclusion, Overall, To summarize, In summary, Ultimately.
-Conclusions begin "In this paper we presented…" or with the artifact's name.
+**Stock closers:** In conclusion, To summarize, Ultimately. Conclusions begin
+"In this paper we presented…" or with the artifact's name.
+
+Two words on that list need an exception. `Overall,` and `In summary,` never
+close a paper in this corpus, but both introduce the contribution list —
+"Overall, this paper describes the following contributions toward achieving this
+goal:" and "In summary, this paper makes the following contributions:". Used
+there they are correct; used as the first word of a conclusion they are not.
 
 **Stock academic filler:** "a growing body of work", "a rich literature",
 "has received considerable attention", "an active area of research". These fit

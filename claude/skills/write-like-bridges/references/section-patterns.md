@@ -11,6 +11,7 @@ imitated in structure and register, not copied.
 - [Design](#design)
 - [Implementation](#implementation)
 - [Evaluation](#evaluation)
+- [Discussion](#discussion)
 - [Related work](#related-work)
 - [Limitations and future work](#limitations-and-future-work)
 - [Conclusion](#conclusion)
@@ -66,6 +67,35 @@ Exemplar (2011, Resilience workshop) — same skeleton, smaller paper:
 
 Note the word *initial* in that last sentence. A workshop paper says so.
 
+Exemplar (2024, CCGrid) — the tightest instance of move 6 in the corpus, where
+the win and the loss share a single sentence:
+
+> Modern communication APIs provide increased ability to specify when, where,
+> and how to send data between processes. One recent innovation is fine-grained
+> communication, where processes are able to send subsets of data as it is ready
+> rather than waiting for the entirety of the data to be completed. Allowing
+> data to be sent when it is ready increases opportunities for overlapping
+> communication and computation. **However,** with multiple fine-grained,
+> thread-safe interfaces, the task of optimizing an application's peer-to-peer
+> fine-grained communication is complex. **In this paper, we present** the
+> Configurable Messaging Benchmark (CMB), a tool for evaluating the application
+> impact of fine-grained communication. Using the CMB we perform a case study to
+> measure the impact of different fine-grained implementations on a variety of
+> realistic application profiles. **Initial results reveal a large optimization
+> space ranging from potential speedups as high as 52.97% to slowdowns as high
+> as 289.55% relative to bulk-synchronous MPI message passing.**
+
+A generic abstract would have stopped at "speedups as high as 52.97%." Reporting
+the 289.55% slowdown in the same clause is what marks the voice, and a draft
+that omits the losing number will read as someone else's work no matter how
+well the rest of it follows these patterns.
+
+Move 3 has several forms depending on what the paper produced: "In this paper we
+describe the design, implementation, and evaluation of…" for a system, "In this
+paper, we present…" for a tool, "In this article, we present…" in journal
+format, and "In this paper we address this lacuna by measuring and evaluating…"
+when the paper is a measurement study answering a named gap.
+
 ---
 
 ## Introduction
@@ -96,11 +126,38 @@ does, then the scoped definition of the paper's central term.
 > these abstractions for HPE Slingshot network interfaces and an evaluation of
 > their performance. By *CPU-free*, we mean specifically that…
 
-**Paragraph 4 — contributions.** See the main SKILL.md. Introduced with
-*Specifically*; bullets are noun phrases; cross-reference sections.
+**Paragraph 4 — contributions.** See the main SKILL.md. The lead-in is usually
+"This paper makes the following contributions:"; bullets are noun phrases;
+cross-reference sections.
 
-**Optional paragraph 5 — roadmap.** One sentence, appended after the
-contribution list, covering only the sections the list did not:
+**Paragraph 5 — roadmap.** Expect this paragraph rather than treating it as
+optional; it appears in most of the group's IEEE- and ACM-format papers. Full
+form, one clause per section, opened by a fixed sentence and closed by folding
+related work and the conclusion together:
+
+> The remainder of this paper is structured as follows. We provide a background
+> for our paper in Section II. We detail the design of the CMB in Section III.
+> We describe how we conducted our experiments and present the results of our
+> experiments in Section IV. We discuss the implications of the case study in
+> Section V. Finally, we distinguish our work from existing related work in
+> Section VI and present our conclusions in Section VII.
+
+> The rest of this paper is structured as follows. Section 2 explains the
+> background and the problem the paper addresses. Section 3 discusses the
+> instrumentation and experimental set-up for this paper. Section 4 presents the
+> results of our experiments. Section 5 discusses the implications of this work
+> and presents our plan for future extensions. Section 6 contextualizes our work
+> in the body of related work. Section 7 concludes our paper.
+
+Pick one grammatical subject — *we* or the section — and hold it for the whole
+paragraph.
+
+Compressed form, one sentence, used when the contribution bullets already carry
+their own cross-references:
+
+> In addition, we compare this approach with other systems for monitoring
+> communication in HPC applications (cf, Section 6), and present directions for
+> future work and conclude (cf, Section 7).
 
 > Following the presentation of these contributions, the paper discusses
 > directions for future work (Section VI), and concludes (Section VII).
@@ -284,9 +341,42 @@ This is the *viability* framing that recurs throughout the corpus:
 Both sides of the criterion get named — benefit *and* the decomposition of cost
 — so the later measurement has something to land against.
 
+**The applications or benchmarks get their own subsection**, with one run-in
+paragraph each. The internal shape is fixed: name the code, say in one sentence
+what it computes, name the communication or execution feature that makes it
+relevant to this paper, and close with a measured fact about its behavior at
+scale, cited. The last element is what separates this from a list of names.
+
+> **Parthenon-VIBE** is a hydrodynamics code that solves the inviscid burgers
+> equations, built on top of the Parthenon block-structured AMR framework. It
+> consists of a neighbor exchange step in addition to a complex load balancing
+> step as mesh blocks are mapped to different ranks. **It has been shown to be
+> network bound when running at scale on the Crossroads supercomputer [43].**
+>
+> **AMG 2023** is a parallel algebraic multigrid solver for linear systems on
+> unstructured grids that utilizes BoomerAMG and Krylov solvers from hypre. It
+> consists of two specified test problems: problem 1 is a 3D diffusion problem
+> on a cuboid with a 27-point stencil which is solved with AMG-GMRES and problem
+> 2 is a 3D laplace problem on a cuboid with a 7-point stencil which is solved
+> using a preconditioned conjugate gradient method. Both solvers require
+> irregular communication at each level of coarsening, and the communication
+> pattern changes at each coarsening level and is data dependent on the
+> structure of the input matrix. **It has been shown to achieve 29% weak scaling
+> efficiency for problem 1 and 23% weak scaling efficiency for problem 2 at
+> 2,048 nodes [43].**
+
 **Experimental setup** is written so a reader could rerun it. Machines are
 described in hardware detail; software versions are tabulated; configuration
 choices are justified, including choices made on someone else's advice.
+
+Machine descriptions name the system and give the socket, core, and network
+detail in one sentence, then state the resulting process counts:
+
+> Data was collected across 4—32 nodes of the Rocinante system at LANL. Each
+> node of Rocinante's standard partition contains two sockets, where each socket
+> is composed of a 56-core Intel Sapphire Rapids CPU, connected through a
+> HPE/Cray Slingshot11 200Gb/s network. All applications were run with MPI only,
+> providing runs on 448 MPI processes up to 3,584 MPI processes.
 
 > The RCCL driver was configured to include the AWS NCCL OFI plugin [21] per
 > system operator advice [22].
@@ -337,6 +427,73 @@ excused:
 
 ---
 
+## Discussion
+
+Present when the evaluation produced advice rather than a verdict, and placed
+between the results and related work. It converts measurements into a short
+list of findings; it does not re-narrate the figures.
+
+The lead-in names what kind of list follows and what evidence produced it:
+
+> The results reported by the CMB and described above suggest several broad
+> conclusions and heuristics regarding the use of fine-grained communication:
+
+> The performance of our parametric and non-parametric methods on these six
+> workloads performed on two different systems leads us to conclude the
+> following:
+
+Two layouts. Numbered items with named run-in headers, when each finding needs a
+paragraph of argument:
+
+> **1) Necessity of Empirical Analysis:** Our evaluation demonstrates that the
+> same application profile (combination of thread arrival distribution,
+> communication stencil, and volume communicated between peer processes) using
+> the same fine-grained implementation […] can exhibit different behaviors
+> depending on the system used. For example, some techniques that prove
+> consistently beneficial on Manzano result in slowdowns on Mutrino. The factors
+> that govern performance are complex and hard to disentangle when their impacts
+> are so interdependent. Given this, a tool like the CMB can be invaluable in
+> making design decisions.
+>
+> **2) Avoiding Pitfalls:** Figures 5, 6, and 7 show the potential hazard of
+> poor fine-grained implementations. Although benefits are possible, these
+> results show that some configurations perform radically worse than
+> bulk-synchronous two-sided message passing. Conveniently, these configurations
+> are easy to avoid. We see that for both systems the worst performing
+> configurations are those with a large number of transport partitions coupled
+> with two-sided MPI message passing. Although this configuration may start
+> communication earlier, the message and matching overheads are considerable.
+
+Or plain bullets, when each finding is a single conditional claim:
+
+> - Computation and memory-bound kernels without any only local (e.g. stencil)
+>   communication can be accurately measured, and their performance variation
+>   accurately quantified and predicted using both parametric and non-parametric
+>   methods.
+> - Parametric methods that rely on GEV estimation and either node or rank level
+>   granularity of data rather than iteration maxima granularity of data
+>   overestimate performance variation on workloads with internal communication
+>   and synchronization overhead. However, their median estimates remain
+>   accurate.
+> - Parametric methods can still be useful in evaluation and predicting
+>   performance variation on workloads with internal communication and
+>   synchronization overhead **if and only if** the network behaves predictably
+>   and with minimal fluctuations.
+
+Every item carries its own bounding clause. The corpus never states a
+recommendation without the case where it fails:
+
+> For Manzano it was consistently beneficial to aggregate and send two messages,
+> with speedups as high as 12.79%. On Mutrino, the same configurations generally
+> had slowdowns of less than 1%. […] Existing modeling work predicts that our
+> Mutrino results are atypical [18], [19], **but it does limit our
+> recommendation for applications sending buffers of this size.**
+
+Note the last clause. The paper had an excuse available, since prior modeling
+says the machine is atypical, and it narrowed its own recommendation anyway.
+
+---
+
 ## Related work
 
 Never a list of summaries. Organized by approach — often under bolded topical
@@ -358,6 +515,34 @@ name what ours does differently, and name the **mechanism** of that difference.
 > write to release the receiver. This eliminates the extra network round trip
 > used by the prior approach.
 
+Not every comparison is competitive. When prior work sits on a different axis,
+name the axis instead of claiming superiority:
+
+> Our work is **orthogonal to** these approaches, as it targets MPI
+> communication rather than MPI-IO and can be utilized to represent and diagnose
+> entire communication patterns rather than individual call sites while
+> providing a framework to explore the tradeoffs in fidelity and scalability of
+> different statistical techniques.
+
+> Caliper, in particular, provides a query language, cali-query, for offline
+> analysis, while also implementing a ConfigManager to flush data at specified
+> intervals, but still requires dumping the entire trace at some point,
+> potentially limiting its scalability on long-running production runs of HPC
+> applications. **Vernier by way of contrast provides** a combination of
+> features that these tools have in addition to providing a flexible backend to
+> perform online analysis and binning of data in customizable ways.
+
+The section can open with a sentence stating the axis of comparison for the
+whole section rather than diving into the first citation:
+
+> Many tools, benchmarks, and proxy applications have been developed to collect
+> communication traces and profiles and to attempt to replicate the
+> communication patterns of large multi-physics applications when run at scale.
+> We discuss many of these approaches and how Vernier, coupled with the
+> flexibility to represent communication patterns at various levels of fidelity,
+> can provide the ability to perform deeper research on irregular and dynamic
+> communication patterns on applications at scale.
+
 Claims about coverage of the literature are explicitly bounded:
 
 > Of the MPI GPU-triggered communication implementations, **we are aware of only
@@ -369,6 +554,14 @@ absolutely:
 > The work described in this paper is **the first of which we are aware** that
 > provides an analytical underpinning to studies of emerging HPC application
 > interference…
+
+> **However, to the best of our knowledge, none of these tools** have the
+> flexibility to perform online binning of the collected data to explore the
+> trade space between scalability and fidelity…
+
+> This benchmark allows for exploration of potential application performance
+> impact of different fine-grained communication **to a degree that has not been
+> explored in prior work.**
 
 Credit prior work generously and by name before differentiating from it: "key
 features from these proposals informed our design"; "Published information on
@@ -388,9 +581,19 @@ paper is otherwise differentiating from as indispensable:
 
 ## Limitations and future work
 
-Gets its own section, usually titled *Limitations and Directions for Future
-Work*. The framing sentence makes explicit that future work addresses *this
-paper's* limitations:
+Rarely a standalone section. Across the corpus the slot is filled four ways, and
+the choice follows paper length more than anything else:
+
+- merged into the conclusion, titled *Conclusions and Future Work* or
+  *Conclusions and Future Directions* — the common case in conference papers;
+- a *Discussion and Future Work* section placed before related work, which
+  doubles as the heuristics section described above;
+- a standalone *Limitations and Directions for Future Work* section, used when
+  the limitations are substantial enough to need their own argument;
+- a closing paragraph of the conclusion, in workshop papers.
+
+Whichever form, the framing sentence makes explicit that future work addresses
+*this paper's* limitations:
 
 > There are many directions for future work that address limitations of our
 > study and build on the research described in this paper.
@@ -428,6 +631,50 @@ Negative results about the group's own prior directions are reported plainly:
 
 Restates the contributions concretely, with numbers, in the order the paper
 presented them. No new framing, no broadening of the claim, no call to action.
+
+Openers are "In this paper we presented…", "In this paper we have presented…",
+or the artifact's name:
+
+> In this paper we have presented motivation, design, and implementation of a
+> Configurable Messaging Benchmark, the CMB.
+
+**A common construction is the past-tense rewrite of the abstract.** The
+conclusion walks the abstract's moves again in the same order, shifting present
+to past, and then adds a paragraph of per-configuration numbers the abstract had
+no room for. Vernier does this move for move — compare its abstract, quoted in
+part, with its conclusion:
+
+> *Abstract:* Understanding the irregular, dynamic communication patterns in HPC
+> applications at scale **is** critical when evaluating potential software
+> optimizations and hardware architectures. Current systems monitor
+> communication behavior for entire applications as exhaustive traces or
+> general-purpose aggregated statistics. Generally, these approaches often **do
+> not scale** well and the data gathered **is** often too generic or inflexible…
+>
+> *Conclusion:* Understanding the irregular, dynamic communication patterns in
+> HPC applications workloads at scale **was** the critical goal of this paper…
+> **We noted that** current systems monitor application communication behavior
+> for the entire application as either exhaustive traces or general-purpose
+> aggregated statistics. In general, these approaches often **did not scale**
+> well and the data gathered **is** often too broad, generic, or inflexible…
+> **Therefore, we introduced** a new methodology and tool, the Vernier
+> communication performance monitoring system.
+
+Then the numbers, one configuration per sentence, wins and failures in the same
+register:
+
+> For the applications studied, the Hierarchical histograms provided exact
+> matches to cosine similarity, while increasing the scalability of data
+> collection by 1.5×—4.6×. The Combined histograms provided similarity scores of
+> 0.984—0.998 for dense communication patterns while increasing the scalability
+> of data collection by 2.75×—13.9×, and providing similarity scores of
+> 0.52—0.65 for much sparser communication patterns. **The Aggregate histograms
+> also performed well on dense communication patterns, achieving similarity
+> scores of 0.72—0.93 while having a total reduction in output data volume of
+> 63×—152×, but also struggled on sparse communication patterns.**
+
+Nothing requires this rewrite, but when a conclusion is hard to start, walking
+the abstract again in past tense is how these papers do it.
 
 > In this paper we presented a cooperative cross-layer application / OS
 > framework for recovering from DRAM memory errors. This framework allows the

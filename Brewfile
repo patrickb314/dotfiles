@@ -144,6 +144,8 @@ mas "Xcode", id: 497799835
 npm "@anthropic-ai/sandbox-runtime"
 npm "firecrawl-cli"
 npm "firecrawl-mcp"
+# PDF reading for agents, reached through the `pdfvision` skill rather than MCP
+npm "pdfvision"
 
 # Sandboxing and MCP helpers that ship via uv. script/sv-after-setup installs
 # these too, for the sandbox account; they are listed here so that a

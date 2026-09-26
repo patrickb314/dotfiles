@@ -350,6 +350,22 @@ into the sandbox home under both names.
 allowlist and denylist, model choice, and theme. [`AGENTS.md`](AGENTS.md) holds
 the conventions that apply to this repository in particular.
 
+### Skills
+
+[`claude/skills`](claude/skills) holds a directory per skill, which
+`script/setup` links into `~/.claude/skills` and copies into the sandbox home.
+[`write-like-bridges`](claude/skills/write-like-bridges) is mine;
+[`pdfvision`](claude/skills/pdfvision/SKILL.md) is a copy of
+[upstream's](https://github.com/yamadashy/pdfvision/tree/main/skills/pdfvision),
+and drives the `pdfvision` CLI the `Brewfile` installs.
+
+pdfvision also ships an MCP server, but upstream recommends the skill for an
+agent that can run a shell: three tool schemas would sit in context for a whole
+session, where a skill loads only when a PDF turns up. Copying beats upstream's
+`npx skills add`, which scatters the skill through some sixty agent directories
+under `$HOME` for tools this machine does not have. Refresh it by fetching
+`skills/pdfvision/SKILL.md` from that repository again.
+
 ### MCP servers
 
 [`script/sv-after-setup`](script/sv-after-setup) installs the MCP servers Claude

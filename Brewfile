@@ -112,7 +112,7 @@ brew "zizmor"
 # Password manager that keeps all passwords secure behind one password
 brew "lastpass-cli"
 # Terminal-based AI coding assistant
-cask "claude-code"
+cask "claude-code@latest"
 # OpenAI's coding agent that runs in your terminal
 cask "codex"
 # Terminal for orchestrating agents

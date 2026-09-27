@@ -211,10 +211,6 @@
 	autoStash = true
 	# Auto-add `--autosquash` to `git rebase`
 	autoSquash = true
-[url "git@github.com:"]
-	# Use SSH for GitHub instead of https://
-	# Enable this in networks where https:// has issues.
-	insteadOf = https://github.com/
 [credential "https://github.com"]
 	username = patrickb314
 [hub]

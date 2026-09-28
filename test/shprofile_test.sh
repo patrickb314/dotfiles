@@ -82,10 +82,16 @@ assert_equal "CPUCOUNT falls back to 1 on an unknown OS" \
   "1" "$(shprofile 'echo "${CPUCOUNT}"' UNAME_S=Plan9)"
 assert_empty "one CPU sets no MAKEFLAGS" \
   "$(shprofile 'echo "${MAKEFLAGS}"' UNAME_S=Plan9)"
-assert_equal "MAKEFLAGS follows CPUCOUNT" \
-  "-j$(shprofile 'echo "${CPUCOUNT}"')" "$(shprofile 'echo "${MAKEFLAGS}"')"
-assert_equal "BUNDLE_JOBS follows CPUCOUNT" \
-  "$(shprofile 'echo "${CPUCOUNT}"')" "$(shprofile 'echo "${BUNDLE_JOBS}"')"
+cpucount="$(shprofile 'echo "${CPUCOUNT}"')"
+if [ "${cpucount}" -gt 1 ]; then
+  assert_equal "MAKEFLAGS follows CPUCOUNT" \
+    "-j${cpucount}" "$(shprofile 'echo "${MAKEFLAGS}"')"
+  assert_equal "BUNDLE_JOBS follows CPUCOUNT" \
+    "${cpucount}" "$(shprofile 'echo "${BUNDLE_JOBS}"')"
+else
+  skip "MAKEFLAGS follows CPUCOUNT" "only one CPU is visible here"
+  skip "BUNDLE_JOBS follows CPUCOUNT" "only one CPU is visible here"
+fi
 
 # --- history and umask -------------------------------------------------
 

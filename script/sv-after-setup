@@ -205,5 +205,13 @@ fi
 # both accounts have. Only the install is per-account state, and skipping it
 # when it is already done leaves the settings file untouched on a rerun.
 if ! "${CLAUDE}" plugin list 2>/dev/null | grep -q "lsp@dotfiles"; then
+  # Declaring the marketplace in settings does not register it, and `add` at
+  # user scope rewrites the declared `~` path as an absolute one. Declaring it
+  # in a throwaway directory's local settings registers it and leaves
+  # `claude/settings.json` alone.
+  MARKETPLACE_SCRATCH="$(mktemp -d)"
+  (cd "${MARKETPLACE_SCRATCH}" &&
+    "${CLAUDE}" plugin marketplace add --scope local "${HOME}/.claude/marketplace")
+  rm -rf "${MARKETPLACE_SCRATCH}"
   "${CLAUDE}" plugin install lsp@dotfiles --scope user --yes
 fi

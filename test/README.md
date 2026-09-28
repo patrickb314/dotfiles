@@ -25,6 +25,7 @@ already bring, and it reaches no network and no LastPass account.
 | `zshrc_test.zsh` | the whole ZSH startup chain on a machine with none of the optional tools |
 | `credlogin_test.zsh` | the spec grammar, variant resolution, the credential cache, login and logout |
 | `setup_test.sh` | where `script/setup` puts each file, and what it skips |
+| `sv_after_setup_test.sh` | where each account finds the shared Zotero library |
 | `syntax_test.sh` | every file parses under the shell that reads it |
 
 ## Writing a test

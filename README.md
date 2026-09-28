@@ -425,7 +425,8 @@ directory outright, so a PDF under it is unreachable whatever the database
 says. `script/sv-after-setup` moves the directory across on the first run that
 finds Zotero closed, which is a rename rather than a copy because the two paths
 share an APFS volume, and leaves `~/Zotero` behind as a symlink for Zotero
-desktop and its plugins. `config.json` then names the moved `zotero.sqlite`
+desktop and its plugins. The sandbox account links its own `~/Zotero` to the
+same directory. `config.json` then names the moved `zotero.sqlite`
 outright: `zotero-mcp` otherwise finds the library by reading the data
 directory out of a Zotero profile under `~/Library`, which the sandbox cannot
 see. That one setting covers the attachments as well, since `storage/` is

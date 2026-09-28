@@ -97,6 +97,12 @@ if [[ -z "${SANDVAULT}" ]] && command -v sv &>/dev/null &&
   fi
 fi
 
+# The sandbox links the same library into its own home, so `~/Zotero` names
+# one directory in either account.
+if [[ -n "${SANDVAULT}" && -d "${ZOTERO_DATA_DIR}" && ! -e "${HOME}/Zotero" ]]; then
+  ln -s "${ZOTERO_DATA_DIR}" "${HOME}/Zotero"
+fi
+
 # Left to itself `zotero-mcp` finds the database by reading the data directory
 # out of Zotero's own profile, which only the main account can do — the sandbox
 # cannot see `~/Library`. Naming the moved database outright is what lets the

@@ -26,6 +26,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "opus",
   "hooks": {
     "Notification": [
       {
@@ -134,7 +135,8 @@
   },
   "enabledPlugins": {
     "firecrawl@claude-plugins-official": true,
-    "lsp@dotfiles": true
+    "lsp@dotfiles": true,
+    "clangd-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
@@ -151,6 +153,7 @@
     }
   },
   "autoUpdatesChannel": "stable",
+  "tui": "fullscreen",
   "theme": "auto",
   "bash": {
     "deniedCommands": [

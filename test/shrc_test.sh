@@ -101,6 +101,17 @@ assert_equal "GOPATH is set" \
   "${HOME}/.gopath" "$(env HOME="${HOME}" PATH="${BARE_PATH}" MACOS=1 \
     bash -c "source ${DOTFILES}/shrc.sh >/dev/null; echo \"\${GOPATH}\"")"
 
+# MacTeX puts itself on PATH through /etc/paths.d, which only path_helper in
+# /etc/zprofile reads, and only for a login shell. `sv` starts the sandbox
+# account with `zsh -c`, so the sandbox never sees it unless shrc.sh adds it.
+if [ -d /Library/TeX/texbin ]; then
+  assert_contains "and MacTeX, which the sandbox gets no other way" \
+    "/Library/TeX/texbin" "$(shrc_path MACOS=1)"
+else
+  skip "and MacTeX, which the sandbox gets no other way" \
+    "MacTeX is not installed on this machine"
+fi
+
 # In the sandbox the account's own ~/bin holds the tools sandvault installs,
 # and it has to win over everything else.
 mkdir -p "${HOME}/bin"

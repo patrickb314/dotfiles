@@ -75,6 +75,13 @@ add_to_path_end "${GOPATH}/bin"
 # Tools installed by `uv tool install`
 add_to_path_end "${HOME}/.local/bin"
 
+# MacTeX installs /etc/paths.d/TeX, which only /usr/libexec/path_helper reads
+# and only /etc/zprofile runs, so a shell that is not a login shell never sees
+# it. `sv` starts the sandbox account with `zsh -c`, sourcing the user files
+# by hand off a PATH of the four system directories, which is why TeX has to
+# be named here to reach both accounts.
+add_to_path_end "/Library/TeX/texbin"
+
 # Aliases
 alias mkdir="mkdir -vp"
 alias df="df -H"
